@@ -25,6 +25,12 @@ final class TvSettings {
         return new Intent(Settings.ACTION_SETTINGS);
     }
 
+    /** Sound settings, falling back to the TV's main Settings when unavailable. */
+    static Intent sound(Context ctx) {
+        Intent i = new Intent(Settings.ACTION_SOUND_SETTINGS);
+        return i.resolveActivity(ctx.getPackageManager()) != null ? i : main(ctx);
+    }
+
     /** Picture settings, or the TV's Settings where they have no entry of their own (Xiaomi: Image settings). */
     static Intent picture(Context ctx) {
         Intent i = new Intent(Settings.ACTION_DISPLAY_SETTINGS);

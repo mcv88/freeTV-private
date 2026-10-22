@@ -333,8 +333,6 @@ public final class LauncherSettingsActivity extends Activity {
 
     private void showAbout() {
         showAboutRow(R.id.aboutVersion, R.drawable.ic_info, R.string.about_version, versionName());
-        showAboutRow(R.id.aboutAuthor, R.drawable.ic_person, R.string.about_author,
-                getString(R.string.about_author_name));
         showAboutRow(R.id.aboutEmail, R.drawable.ic_mail, R.string.about_email,
                 getString(R.string.about_email_value));
         showAboutRow(R.id.aboutSource, R.drawable.ic_code, R.string.about_source,

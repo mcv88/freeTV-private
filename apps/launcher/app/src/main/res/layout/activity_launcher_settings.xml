@@ -107,7 +107,6 @@
                 <TextView style="@style/SettingsSheetLabel" android:text="@string/settings_group_about" />
                 <LinearLayout style="@style/SettingsSheetGroup">
                     <TextView android:id="@+id/aboutVersion" style="@style/SettingsListItem" />
-                    <TextView android:id="@+id/aboutAuthor" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/aboutEmail" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/aboutSource" style="@style/SettingsListItem" />
                 </LinearLayout>

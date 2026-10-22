@@ -562,9 +562,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             showWifiMenu();
             return true;
         });
-        // The header's Settings opens the launcher's own settings; the TV's are one row away in there,
-        // on the Settings tile and on the remote's gear. Hold OK keeps the launcher menu.
-        btnSettings.setOnClickListener(v -> openLauncherSettings());
+        // Tap opens the top-level settings panel; hold OK keeps the launcher shortcut menu.
+        btnSettings.setOnClickListener(v -> startActivity(
+                new Intent(this, QuickSettingsActivity.class)));
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);

@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
+import android.view.KeyEvent;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -27,16 +28,54 @@ public final class QuickSettingsActivity extends Activity {
         findViewById(R.id.scrim).setOnClickListener(v -> finish());
         LinearLayout rows = findViewById(R.id.rows);
         addRow(rows, R.drawable.ic_settings, R.string.tv_settings, 0, TvSettings.main(this));
+        addRow(rows, R.drawable.ic_timer, R.string.quick_sleep_timer,
+                R.string.quick_sleep_timer_hint, TvSettings.main(this));
         addRow(rows, R.drawable.ic_picture, R.string.quick_picture, 0, TvSettings.picture(this));
-        addRow(rows, R.drawable.ic_wifi, R.string.quick_network, 0, new Intent(Settings.ACTION_WIFI_SETTINGS));
-        addRow(rows, R.drawable.ic_apps, R.string.quick_apps, R.string.quick_apps_hint,
-                new Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS));
-        // Through Home, so it rebuilds with the new choices when Launcher settings closes.
+        addRow(rows, R.drawable.ic_sound, R.string.quick_sound, 0, TvSettings.sound(this));
         addRow(rows, R.drawable.ic_home_settings, R.string.launcher_settings, 0,
                 new Intent(this, MainActivity.class).setAction(MainActivity.ACTION_LAUNCHER_SETTINGS));
-        Config config = Config.load(this);
-        M3Skin.apply(findViewById(R.id.panel), Palette.currentOrBaseline(), config.animations, config.reducedMotion);
-        rows.getChildAt(0).requestFocus();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        LinearLayout rows = findViewById(R.id.rows);
+        int count = rows.getChildCount();
+
+        if (count == 0) return super.onKeyDown(keyCode, event);
+
+        View focused = getCurrentFocus();
+        int index = -1;
+        for (int i = 0; i < count; i++) {
+            if (rows.getChildAt(i) == focused) {
+                index = i;
+                break;
+            }
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                || keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+            if (event.getRepeatCount() > 0) return true;
+
+            if (index < 0) {
+                index = 0;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                index = Math.min(index + 1, count - 1);
+            } else {
+                index = Math.max(index - 1, 0);
+            }
+
+            rows.getChildAt(index).requestFocus();
+            return true;
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
+                || keyCode == KeyEvent.KEYCODE_ENTER) {
+            if (index < 0) index = 0;
+            rows.getChildAt(index).performClick();
+            return true;
+        }
+
+        return super.onKeyDown(keyCode, event);
     }
 
     /** Settings pressed again while the panel is up. */
@@ -62,6 +101,12 @@ public final class QuickSettingsActivity extends Activity {
         TextView hint = row.findViewById(R.id.status);
         if (status != 0) hint.setText(status);
         else hint.setVisibility(View.GONE);
+        row.setFocusable(true);
+        row.setFocusableInTouchMode(true);
+        row.setOnFocusChangeListener((v, hasFocus) -> {
+            v.setSelected(hasFocus);
+            v.setAlpha(hasFocus ? 1.0f : 0.82f);
+        });
         row.setOnClickListener(v -> {
             try {
                 startActivity(target.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
