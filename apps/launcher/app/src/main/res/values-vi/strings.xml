@@ -146,10 +146,10 @@
 
     <!-- Weather card details -->
     <string name="weather_high_low">Cao %1$d° · Thấp %2$d°</string>
-    <string name="chip_rain">Khả năng mưa</string>
+    <string name="chip_rain">Mưa</string>
     <string name="chip_humidity">Độ ẩm</string>
-    <string name="chip_aqi">Không khí · AQI</string>
-    <string name="chip_uv">Chỉ số UV</string>
+    <string name="chip_aqi">AQI</string>
+    <string name="chip_uv">UV</string>
     <string name="uv_low">Thấp</string>
     <string name="uv_moderate">Trung bình</string>
     <string name="uv_high">Cao</string>

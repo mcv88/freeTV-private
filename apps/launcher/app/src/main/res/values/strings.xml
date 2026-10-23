@@ -167,10 +167,10 @@
 
     <!-- Weather card details -->
     <string name="weather_high_low">High %1$d° · Low %2$d°</string>
-    <string name="chip_rain">Rain chance</string>
+    <string name="chip_rain">Rain</string>
     <string name="chip_humidity">Humidity</string>
-    <string name="chip_aqi">Air · AQI</string>
-    <string name="chip_uv">UV index</string>
+    <string name="chip_aqi">AQI</string>
+    <string name="chip_uv">UV</string>
     <string name="uv_low">Low</string>
     <string name="uv_moderate">Moderate</string>
     <string name="uv_high">High</string>

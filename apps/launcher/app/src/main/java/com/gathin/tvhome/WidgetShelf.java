@@ -973,8 +973,7 @@ final class WidgetShelf {
         }
         weatherRainValue.setText(report.todayRain + "%");
         weatherHumidityValue.setText(report.humidity + "%");
-        weatherAqiValue.setText(air == null ? "–" : air.aqi + " · "
-                + activity.getString(AirQuality.label(AirQuality.level(air.aqi))));
+        weatherAqiValue.setText(air == null ? "–" : String.valueOf(air.aqi));
         weatherUvValue.setText(Math.round(report.uv) + " · "
                 + activity.getString(Weather.uvLabel(report.uv)));
         LocalDate today = LocalDate.now();
@@ -988,7 +987,7 @@ final class WidgetShelf {
             Weather.Day day = report.days[i];
             dayNames[i].setText(dayName(today.plusDays(i + 1)));
             dayIcons[i].setImageResource(Weather.icon(Weather.sky(day.code), true));
-            dayTemps[i].setText(degrees(day.high) + "° / " + degrees(day.low) + "°");
+            dayTemps[i].setText(degrees(day.high) + "°");
         }
     }
 
