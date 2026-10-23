@@ -124,7 +124,6 @@
     <string name="weather_tomorrow">%s ngày mai</string>
     <string name="weather_tomorrow_detail">Thấp nhất %1$d°, mưa %2$d%%</string>
     <string name="weather_offline">Không lấy được thời tiết</string>
-    <string name="widget_add">Thêm widget</string>
     <string name="widget_remove">Gỡ widget</string>
 
     <!-- Edit Home (apps, dock and widgets) -->
@@ -159,7 +158,6 @@
 
     <!-- Prices widget -->
     <string name="prices">Giá cả</string>
-    <string name="prices_title">Giá cả hôm nay</string>
     <string name="prices_updated">Cập nhật %s</string>
     <string name="prices_gold">Vàng · triệu đ/lượng</string>
     <string name="prices_buy">Mua</string>

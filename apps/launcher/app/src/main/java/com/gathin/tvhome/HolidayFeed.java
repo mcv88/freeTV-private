@@ -138,7 +138,8 @@ final class HolidayFeed {
         if (value.length() < 8) return null;
         try {
             return LocalDate.of(Integer.parseInt(value.substring(0, 4)),
-                    Integer.parseInt(value.substring(4, 6)), Integer.parseInt(value.substring(6, 8)));
+                    Integer.parseInt(value.substring(4, 6)),
+                    Integer.parseInt(value.substring(6, 8)));
         } catch (RuntimeException e) {
             return null;
         }
@@ -149,7 +150,7 @@ final class HolidayFeed {
                 .replace("\\n", " ").replace("\\\\", "\\");
     }
 
-    /** Lower case without diacritics, so a "ngay nghi" prefix is recognised however it is encoded. */
+    /** Lower case without diacritics, so a "ngay nghi" prefix is recognised in any encoding. */
     private static String plain(String text) {
         String stripped = Normalizer.normalize(text, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "");

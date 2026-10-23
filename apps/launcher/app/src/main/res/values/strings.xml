@@ -145,7 +145,6 @@
     <string name="weather_tomorrow">%s tomorrow</string>
     <string name="weather_tomorrow_detail">Low %1$d°, %2$d%% rain</string>
     <string name="weather_offline">Can\'t reach the weather service</string>
-    <string name="widget_add">Add widget</string>
     <string name="widget_remove">Remove</string>
 
     <!-- Edit Home (apps, dock and widgets) -->
@@ -180,7 +179,6 @@
 
     <!-- Prices widget -->
     <string name="prices">Prices</string>
-    <string name="prices_title">Prices today</string>
     <string name="prices_updated">Updated %s</string>
     <string name="prices_gold">Gold · ₫m/tael</string>
     <string name="prices_buy">Buy</string>

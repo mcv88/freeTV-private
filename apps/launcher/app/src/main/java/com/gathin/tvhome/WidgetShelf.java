@@ -53,8 +53,7 @@ import java.util.function.IntConsumer;
  *   <li>Prices ({@link Prices}): SJC gold, Petrolimex fuel for region 1 and Vietcombank's USD rate.</li>
  * </ul>
  * The owner picks which widgets show and in what order: Launcher settings has a switch per widget,
- * an Add widget card fills the row's end while any widget is unshown (OK lists them), and holding OK
- * on a widget offers Move and Remove. The list is kept in the launcher's settings
+ * and holding OK on a widget offers Move and Remove. The list is kept in the launcher's settings
  * ({@link #ORDER_KEY}), and so is each widget's own
  * settings (Settings on its menu): the place and unit of the weather (the air quality shares the
  * place), whether the calendar counts down to every holiday or only Tết, and whether This TV shows CPU.
@@ -109,12 +108,9 @@ final class WidgetShelf {
     private final Activity activity;
     private final View shelf;
     private final WidgetCard[] cards;
-    private final WidgetCard addCard;
-    private final TextView addLabel;
-    private final ImageView addIcon;
     /** The widgets shown, left to right (ids from {@link #ALL}). */
     private final List<String> order = new ArrayList<>();
-    /** The cards on the shelf now, left to right: the widgets shown, then Add widget while any is not. */
+    /** The cards on the shelf now, left to right: the widgets shown. */
     private final List<WidgetCard> slots = new ArrayList<>();
     private RecyclerView lastGrid;
     /** Cards move when the list changes: added ones grow in, removed ones shrink out, the rest slide. */
@@ -307,10 +303,6 @@ final class WidgetShelf {
         for (int i = 0; i < rowNames.length; i++) {
             TextFit.attachRow(rowNames[i], rowValues[i], (View) rowNames[i].getParent());
         }
-        addCard = shelf.findViewById(R.id.widgetAdd);
-        addLabel = shelf.findViewById(R.id.widgetAddLabel);
-        addIcon = shelf.findViewById(R.id.widgetAddIcon);
-        addCard.setGhost(true);
         loadOrder();
 
 
@@ -334,7 +326,6 @@ final class WidgetShelf {
                 return true;
             });
         }
-        addCard.setOnClickListener(v -> showAddMenu());
         for (WidgetCard card : allCards()) card.setMotion(motion);
         cards[1].setOnClickListener(v -> {
             systemPage = (systemPage + 1) % SystemPages.COUNT;
@@ -372,13 +363,11 @@ final class WidgetShelf {
 
     /** The card header buttons should go down to: the last one, under them. */
     int cardUnderHeaderButtons() {
-        return slots.isEmpty() ? addCard.getId() : slots.get(slots.size() - 1).getId();
+        return slots.isEmpty() ? View.NO_ID : slots.get(slots.size() - 1).getId();
     }
 
     private WidgetCard[] allCards() {
-        WidgetCard[] all = Arrays.copyOf(cards, cards.length + 1);
-        all[cards.length] = addCard;
-        return all;
+        return cards;
     }
 
     private WidgetCard card(String id) {
@@ -485,19 +474,6 @@ final class WidgetShelf {
         });
     }
 
-    private void showAddMenu() {
-        List<MenuItem> items = new ArrayList<>();
-        for (String id : ALL) {
-            if (has(id)) continue;
-            items.add(new MenuItem(icon(id), activity.getString(name(id)), () -> {
-                List<String> next = new ArrayList<>(order);
-                next.add(id);
-                setOrder(next, id, next.size() - 1, null);
-            }));
-        }
-        if (!items.isEmpty()) host.showMenu(addCard, items);
-    }
-
     private void showEditMenu(String id) {
         int at = order.indexOf(id);
         if (at < 0) return;
@@ -547,7 +523,7 @@ final class WidgetShelf {
     /**
      * A key in Edit Home with focus on the shelf. OK picks the focused widget up; while it is carried,
      * Left and Right move it along the shelf, Up and Down do nothing, and OK or Back put it down. False
-     * for keys left to the activity (Back with nothing carried ends the mode; OK on Add widget opens it).
+     * for keys left to the activity (Back with nothing carried ends the mode).
      */
     boolean handleEditKey(KeyEvent event, View focused) {
         if (!editing || !(focused instanceof WidgetCard) || focused.getParent() != shelf) return false;
@@ -752,7 +728,6 @@ final class WidgetShelf {
     /** A card's share of the row: the air card reads at a glance, so it takes less; the weather
      * and the calendar carry lists, so they take more. */
     private double weight(WidgetCard card) {
-        if (card == addCard) return 1.0;
         String id = idOf(card);
         if (WEATHER.equals(id) || CALENDAR.equals(id)) return 1.15;
         if (AIR.equals(id)) return 0.7;
@@ -849,10 +824,9 @@ final class WidgetShelf {
     // ---- placement -------------------------------------------------------------------------------
 
     /**
-     * Puts the shown cards over the dock's columns, left to right (each card's visible part exactly over
-     * its tile, its focus room around it), and centres the shelf in the space above the dock. dockTop is
-     * the dock's top in the shelf's parent, which also holds the grid. At most one card per column and
-     * four in all; a free column gets the Add widget card.
+     * Lays the shown cards across the row's full width, left to right (each with its focus room around
+     * it), and centres the shelf in the space above the dock. dockTop is the dock's top in the shelf's
+     * parent, which also holds the grid.
      */
     void align(RecyclerView grid, int columns, int dockTop) {
         lastGrid = grid;
@@ -861,7 +835,6 @@ final class WidgetShelf {
         if (!enabled) return;
         slots.clear();
         for (String id : order) slots.add(card(id));
-        if (order.size() < ALL.length) slots.add(addCard);
         for (WidgetCard c : allCards()) {
             int visibility = slots.contains(c) ? View.VISIBLE : View.GONE;
             if (c.getVisibility() != visibility) c.setVisibility(visibility);
