@@ -20,7 +20,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:padding="14dp">
+            android:padding="10dp">
 
             <TextView
                 android:id="@+id/weatherPlace"
@@ -30,26 +30,27 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <com.gathin.tvhome.ShapeBadge
                     android:id="@+id/weatherIcon"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp" />
+                    android:layout_width="32dp"
+                    android:layout_height="32dp" />
 
                 <TextView
                     android:id="@+id/weatherTemp"
                     style="@style/WidgetValue"
                     android:layout_marginStart="10dp"
+                    android:textSize="28sp"
                     android:text="–" />
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="4dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -68,7 +69,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="6dp"
                 android:orientation="horizontal">
 
                 <LinearLayout
@@ -139,7 +140,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="6dp"
                 android:orientation="horizontal">
 
                 <LinearLayout

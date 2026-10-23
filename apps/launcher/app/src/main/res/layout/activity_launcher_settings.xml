@@ -70,6 +70,7 @@
                     <TextView android:id="@+id/columnsChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetsChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetLayoutChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetTapChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetToggleWeather" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetHeightWeather" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetWidthWeather" style="@style/SettingsListItem" />
@@ -115,6 +116,7 @@
                 <LinearLayout style="@style/SettingsSheetGroup">
                     <TextView android:id="@+id/tvSettingsChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/defaultInfo" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/bootAppChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/stockInfo" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/updateChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/rebootChoice" style="@style/SettingsListItem" />

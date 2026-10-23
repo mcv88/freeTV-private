@@ -17,6 +17,7 @@ Locales: English and Vietnamese only.
 | `.HomeKeyService` | Accessibility: Home that sends `KEYCODE_ALL_APPS`, `settings_key_*`, `app_keys`; stands in for Home where the firmware keeps it (Xiaomi CN): `KEYCODE_HOME` and any other HOME activity coming to the front (the stock launcher, or Settings' FallbackHome once the stock one is disabled) open this one, 300 ms after it settles |
 | `.ClockDream` | Clock screensaver; style from Launcher settings (shapes, glow, minimal, large) |
 | `.InstallStatusReceiver` | Not exported: the PackageInstaller session's result; shows the system confirm dialog |
+| `.BootReceiver` | Exported (system broadcasts only): on BOOT_COMPLETED opens the app picked in Launcher settings (`boot_app`), if one is picked |
 
 ## Code map
 

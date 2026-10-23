@@ -54,6 +54,9 @@ final class Weather {
         /** Tomorrow: the high and low, the sky and the chance of rain (%). */
         final double tomorrowHigh, tomorrowLow;
         final int tomorrowCode, tomorrowRain;
+        /** Rain soon, from the 15-minute slots: minutes until it starts (dry now) or stops
+         *  (raining now), each -1 when it does not happen within two hours. */
+        final int rainInMinutes, rainStopsInMinutes;
         /** Today: the chance of rain (%) and the peak UV index; then the five days after today. */
         final int todayRain;
         final double uv;
@@ -62,7 +65,7 @@ final class Weather {
 
         Report(String place, double temp, double high, double low, int code, boolean day, double feels, int humidity,
                double wind, double tomorrowHigh, double tomorrowLow, int tomorrowCode, int tomorrowRain,
-               int todayRain, double uv, Day[] days, long fetchedAt) {
+               int todayRain, double uv, int rainInMinutes, int rainStopsInMinutes, Day[] days, long fetchedAt) {
             this.place = place;
             this.temp = temp;
             this.high = high;
@@ -76,6 +79,8 @@ final class Weather {
             this.tomorrowLow = tomorrowLow;
             this.tomorrowCode = tomorrowCode;
             this.tomorrowRain = tomorrowRain;
+            this.rainInMinutes = rainInMinutes;
+            this.rainStopsInMinutes = rainStopsInMinutes;
             this.todayRain = todayRain;
             this.uv = uv;
             this.days = days;
@@ -145,7 +150,7 @@ final class Weather {
                 p.getInt("code", 0), p.getBoolean("day", true), p.getFloat("feels", 0), p.getInt("humidity", 0),
                 p.getFloat("wind", 0), p.getFloat("t_high", 0), p.getFloat("t_low", 0), p.getInt("t_code", 0),
                 p.getInt("t_rain", 0), p.getInt("rain0", 0), p.getFloat("uv", 0),
-                savedDays(p), fetched);
+                p.getInt("rain_in", -1), p.getInt("rain_stops", -1), savedDays(p), fetched);
     }
 
     /** The five saved days, from their comma separated codes and ranges; empty when unreadable. */
@@ -208,6 +213,7 @@ final class Weather {
         JSONObject f = get(String.format(Locale.US,
                 "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f"
                         + "&current=temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m"
+                        + "&minutely_15=precipitation"
                         + "&daily=temperature_2m_max,temperature_2m_min,weather_code"
                         + ",precipitation_probability_max,uv_index_max"
                         + "&timezone=auto&forecast_days=6",
@@ -221,12 +227,14 @@ final class Weather {
         for (int i = 0; i < days.length; i++) {
             days[i] = new Day(max.getDouble(i + 1), min.getDouble(i + 1), codes.getInt(i + 1));
         }
+        int[] soon = rainSoon(rainSlots(f, current.optString("time", "")));
         Report r = new Report(place, current.getDouble("temperature_2m"), max.getDouble(0), min.getDouble(0),
                 current.getInt("weather_code"), current.optInt("is_day", 1) == 1,
                 current.optDouble("apparent_temperature", current.getDouble("temperature_2m")),
                 current.optInt("relative_humidity_2m", 0), current.optDouble("wind_speed_10m", 0),
                 max.getDouble(1), min.getDouble(1), codes.getInt(1), rain.isNull(1) ? 0 : rain.getInt(1),
-                rain.isNull(0) ? 0 : rain.getInt(0), uvMax.isNull(0) ? 0 : uvMax.getDouble(0), days, now);
+                rain.isNull(0) ? 0 : rain.getInt(0), uvMax.isNull(0) ? 0 : uvMax.getDouble(0),
+                soon[0], soon[1], days, now);
         StringBuilder fCodes = new StringBuilder(), fHighs = new StringBuilder(), fLows = new StringBuilder();
         for (Day d : days) {
             if (fCodes.length() > 0) {
@@ -243,10 +251,55 @@ final class Weather {
                 .putFloat("feels", (float) r.feels).putInt("humidity", r.humidity).putFloat("wind", (float) r.wind)
                 .putFloat("t_high", (float) r.tomorrowHigh).putFloat("t_low", (float) r.tomorrowLow)
                 .putInt("t_code", r.tomorrowCode).putInt("t_rain", r.tomorrowRain).putInt("rain0", r.todayRain)
-                .putFloat("uv", (float) r.uv).putString("f_codes", fCodes.toString())
+                .putFloat("uv", (float) r.uv).putInt("rain_in", r.rainInMinutes)
+                .putInt("rain_stops", r.rainStopsInMinutes).putString("f_codes", fCodes.toString())
                 .putString("f_highs", fHighs.toString()).putString("f_lows", fLows.toString())
                 .putLong("fetched", now).apply();
         return r;
+    }
+
+    /** The next nine 15-minute precipitation slots (mm), starting with the one covering now. */
+    private static double[] rainSlots(JSONObject forecast, String now) throws JSONException {
+        double[] slots = new double[9];
+        JSONObject minutely = forecast.optJSONObject("minutely_15");
+        if (minutely == null) return slots;
+        JSONArray times = minutely.optJSONArray("time"), amounts = minutely.optJSONArray("precipitation");
+        if (times == null || amounts == null) return slots;
+        int start = -1;
+        for (int i = 0; i < times.length(); i++) {
+            if (times.optString(i, "").compareTo(now) <= 0) start = i;
+            else break;
+        }
+        if (start < 0) return slots;
+        for (int i = 0; i < slots.length && start + i < amounts.length(); i++) {
+            slots[i] = amounts.optDouble(start + i, 0);
+        }
+        return slots;
+    }
+
+    /**
+     * When the rain turns, from the slots {@link #rainSlots} returns: {starts in, stops in}
+     * minutes, each -1 when it does not happen within the two hours the slots cover. Raining
+     * now means the current slot holds at least 0.1 mm.
+     */
+    static int[] rainSoon(double[] slots) {
+        int starts = -1, stops = -1;
+        if (slots.length > 0 && slots[0] >= 0.1) {
+            for (int i = 1; i < slots.length; i++) {
+                if (slots[i] < 0.1) {
+                    stops = i * 15;
+                    break;
+                }
+            }
+        } else {
+            for (int i = 1; i < slots.length; i++) {
+                if (slots[i] >= 0.1) {
+                    starts = i * 15;
+                    break;
+                }
+            }
+        }
+        return new int[]{starts, stops};
     }
 
     /** The IP's city and coordinates; the name in the TV's language when the geocoder knows it. */

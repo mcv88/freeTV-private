@@ -1468,6 +1468,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             public boolean startEditing() {
                 return reordering || beginReorder();
             }
+
+            @Override
+            public void showDetail(View anchor, View panel) {
+                PopupWindow popup = glassPopup(panel, (int) (560 * density));
+                skin(panel);
+                panel.measure(View.MeasureSpec.makeMeasureSpec((int) (560 * density),
+                                View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec((int) (root.getHeight() * 0.85f),
+                                View.MeasureSpec.AT_MOST));
+                popup.setHeight(panel.getMeasuredHeight());
+                popup.showAtLocation(root, Gravity.CENTER, 0, 0);
+            }
         });
         widgets.setOnDown(column -> {
             focusTile(Math.min(column, Math.max(0, adapter.dockFilled() - 1)));

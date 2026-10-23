@@ -35,6 +35,8 @@
     <string name="follow_theme">Theo theme (xóa lựa chọn trên TV)</string>
     <string name="follow_theme_hint">Dùng bố cục và hiệu ứng của theme hiện tại hoặc mặc định. Đẩy hoặc đặt lại theme cũng xóa các lựa chọn bạn đã chọn trên TV.</string>
     <string name="tv_settings">Cài đặt hệ thống TV</string>
+    <string name="boot_app">Ứng dụng mở khi bật TV</string>
+    <string name="boot_app_none">Không mở — chỉ màn hình chính</string>
     <string name="quick_picture">Hiển thị</string>
     <string name="quick_sleep_timer_hint">Tìm mục này trong cài đặt TV</string>
     <string name="quick_sleep_timer">Hẹn giờ tắt</string>
@@ -85,6 +87,9 @@
     <!-- Home widgets (WidgetShelf) -->
     <string name="widgets">Tiện ích</string>
     <string name="widget_layout">Bố cục thẻ</string>
+    <string name="widget_tap">Khi bấm vào thẻ</string>
+    <string name="widget_tap_detail">Mở popup chi tiết</string>
+    <string name="widget_tap_classic">Như cũ — lật trang</string>
     <string name="widget_layout_stacked">Dọc</string>
     <string name="widget_layout_wide">Ngang</string>
     <string name="widget_card_height">Chiều cao thẻ</string>
@@ -95,6 +100,16 @@
     <string name="widget_width_wide">Rộng</string>
     <string name="widget_width_widest">Rất rộng</string>
     <string name="widget_height_value">%1$ddp</string>
+    <string name="detail_high">Cao nhất</string>
+    <string name="detail_low">Thấp nhất</string>
+    <string name="detail_rain_chance">Khả năng mưa hôm nay</string>
+    <string name="detail_wind">Gió</string>
+    <string name="detail_tomorrow">Ngày mai</string>
+    <string name="detail_forecast">Dự báo 5 ngày tới</string>
+    <string name="detail_upcoming">Sự kiện sắp tới</string>
+    <string name="detail_solar">Dương lịch</string>
+    <string name="detail_sources_prices">Nguồn: vang.today · Petrolimex vùng 1 · Vietcombank</string>
+    <string name="detail_no_data">Chưa có dữ liệu — thử lại sau ít phút</string>
     <string name="weather">Thời tiết</string>
     <string name="widget_system">Thiết bị</string>
     <string name="widget_ram">RAM</string>
@@ -170,6 +185,9 @@
     <!-- Prices widget -->
     <string name="prices">Giá cả</string>
     <string name="prices_updated">Cập nhật %s</string>
+    <string name="rain_soon_in">Khoảng %1$d phút nữa sẽ mưa</string>
+    <string name="rain_stops_in">Đang mưa — khoảng %1$d phút nữa tạnh</string>
+    <string name="rain_none">Hai giờ tới không có mưa</string>
     <string name="prices_gold">Vàng · triệu đ/lượng</string>
     <string name="prices_buy">Mua</string>
     <string name="prices_sell">Bán</string>

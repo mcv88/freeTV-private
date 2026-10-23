@@ -3,6 +3,9 @@ package com.gathin.tvhome;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Rect;
@@ -14,6 +17,8 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -73,6 +78,9 @@ final class WidgetShelf {
     static final String LAYOUT_KEY = "widget_layout";
     static final String LAYOUT_STACKED = "stacked";
     static final String LAYOUT_WIDE = "wide";
+    static final String TAP_KEY = "widget_tap";
+    static final String TAP_DETAIL = "detail";
+    static final String TAP_CLASSIC = "classic";
     static final String HEIGHT_KEY_PREFIX = "widget_height_";
     static final String WIDTH_KEY_PREFIX = "widget_width_";
     static final int[] WIDTH_OPTIONS = {70, 85, 100, 120, 140};
@@ -83,6 +91,9 @@ final class WidgetShelf {
     /** What the shelf needs from Home: its menus, the storage page, and a say when the cards change. */
     interface Host {
         void showMenu(View anchor, List<MenuItem> items);
+
+        /** A card was tapped: float its full detail panel over Home. */
+        void showDetail(View anchor, View panel);
 
         /** The cards on the shelf changed: the header's Down target may have moved. */
         void slotsChanged();
@@ -338,14 +349,11 @@ final class WidgetShelf {
             });
         }
         for (WidgetCard card : allCards()) card.setMotion(motion);
-        cards[1].setOnClickListener(v -> {
-            systemPage = (systemPage + 1) % SystemPages.COUNT;
-            cards[1].turn(this::paintSystem);
-        });
-        cards[2].setOnClickListener(v -> {
-            airTomorrow = !airTomorrow;
-            cards[2].turn(this::paintAir);
-        });
+        for (int i = 0; i < ALL.length; i++) {
+            String id = ALL[i];
+            WidgetCard card = cards[i];
+            card.setOnClickListener(v -> onCardTap(id, card));
+        }
     }
 
     /** Down from the card over dock column i: the activity focuses the app below it. */
@@ -414,6 +422,11 @@ final class WidgetShelf {
         List<String> saved = savedOrder();
         if (!saved.equals(order)) applyOrder(saved, null, 0, false);
         applyCardHeight();
+    }
+
+    /** A tap opens the card's detail popup until the owner picks the old flips instead. */
+    static boolean tapOpensDetail(SharedPreferences prefs) {
+        return !TAP_CLASSIC.equals(prefs.getString(TAP_KEY, TAP_DETAIL));
     }
 
     /** The arrangement the owner picked in settings: the stacked one until they choose wide. */
@@ -949,6 +962,263 @@ final class WidgetShelf {
         shelf.setVisibility(visibility == 0f ? View.INVISIBLE : View.VISIBLE);
     }
 
+    // ---- detail popup ------------------------------------------------------------------------------
+
+    /**
+     * A tap on a card: its whole story in the detail popup, or — when the owner picked
+     * the old behaviour in settings — the flips the system and air cards always had.
+     */
+    private void onCardTap(String id, WidgetCard card) {
+        if (tapOpensDetail(prefs)) {
+            showDetail(id, card);
+        } else if (SYSTEM.equals(id)) {
+            systemPage = (systemPage + 1) % SystemPages.COUNT;
+            card.turn(this::paintSystem);
+        } else if (AIR.equals(id)) {
+            airTomorrow = !airTomorrow;
+            card.turn(this::paintAir);
+        }
+    }
+
+    /** A tap on a card: its whole story, floated over Home by the host. */
+    private void showDetail(String id, View anchor) {
+        View panel = detailPanel(id);
+        if (panel != null) host.showDetail(anchor, panel);
+    }
+
+    private View detailPanel(String id) {
+        LinearLayout box = new LinearLayout(activity);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(px(20), px(18), px(20), px(18));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(palette != null ? palette.surface : Color.rgb(28, 27, 31));
+        bg.setCornerRadius(px(24));
+        box.setBackground(bg);
+        switch (id) {
+            case WEATHER: buildWeatherDetail(box); break;
+            case SYSTEM: buildSystemDetail(box); break;
+            case AIR: buildAirDetail(box); break;
+            case CALENDAR: buildCalendarDetail(box); break;
+            case PRICES: buildPricesDetail(box); break;
+            default: return null;
+        }
+        ScrollView scroll = new ScrollView(activity);
+        scroll.setFocusable(true);
+        scroll.addView(box);
+        return scroll;
+    }
+
+    private int px(int dp) {
+        return Math.round(dp * density);
+    }
+
+    private int detailOn() {
+        return palette != null ? palette.onSurface : Color.WHITE;
+    }
+
+    private int detailVariant() {
+        return palette != null ? palette.onSurfaceVariant : 0xB3FFFFFF;
+    }
+
+    private TextView detailText(String text, float size, int color, int font) {
+        TextView v = new TextView(activity);
+        v.setText(text);
+        v.setTextSize(size);
+        v.setTextColor(color);
+        if (font != 0) v.setTypeface(activity.getResources().getFont(font));
+        return v;
+    }
+
+    private void detailTitle(LinearLayout box, String text) {
+        box.addView(detailText(text, 20, detailOn(), R.font.sans_headline));
+    }
+
+    private void detailBig(LinearLayout box, String text) {
+        TextView v = detailText(text, 26, detailOn(), R.font.sans_display);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = px(8);
+        v.setLayoutParams(lp);
+        box.addView(v);
+    }
+
+    private void detailSection(LinearLayout box, String text) {
+        TextView v = detailText(text, 12,
+                palette != null ? palette.primary : 0xFFD0BCFF, R.font.sans_medium);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = px(16);
+        v.setLayoutParams(lp);
+        box.addView(v);
+    }
+
+    private void detailRow(LinearLayout box, String label, String value) {
+        LinearLayout row = new LinearLayout(activity);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        TextView name = detailText(label, 13, detailVariant(), R.font.sans_regular);
+        name.setLayoutParams(new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        TextView val = detailText(value, 14, detailOn(), R.font.sans_medium);
+        val.setGravity(Gravity.END);
+        row.addView(name);
+        row.addView(val);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = px(7);
+        box.addView(row, lp);
+    }
+
+    /** A rain-soon line under the big reading: accented when rain is coming or stopping. */
+    private void detailAlert(LinearLayout box, String text, boolean accent) {
+        int color = accent ? (palette != null ? palette.primary : 0xFFD0BCFF) : detailVariant();
+        TextView v = detailText(text, 14, color, accent ? R.font.sans_medium : R.font.sans_regular);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = px(8);
+        v.setLayoutParams(lp);
+        box.addView(v);
+    }
+
+    private void detailNote(LinearLayout box, String text) {
+        TextView v = detailText(text, 12, detailVariant(), R.font.sans_regular);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = px(14);
+        v.setLayoutParams(lp);
+        box.addView(v);
+    }
+
+    private String updatedText(long fetchedAt) {
+        String time = DateTimeFormatter.ofPattern("HH:mm").format(LocalDateTime.ofInstant(
+                java.time.Instant.ofEpochMilli(fetchedAt), ZoneId.systemDefault()));
+        return activity.getString(R.string.prices_updated, time);
+    }
+
+    private void buildWeatherDetail(LinearLayout box) {
+        detailTitle(box, activity.getString(R.string.weather));
+        if (report == null) {
+            detailNote(box, activity.getString(R.string.detail_no_data));
+            return;
+        }
+        String place = report.place.isEmpty() ? activity.getString(R.string.weather) : report.place;
+        detailBig(box, place + " · " + degrees(report.temp) + "° · "
+                + Weather.label(Weather.sky(report.code)));
+        if (report.rainStopsInMinutes > 0) {
+            detailAlert(box, activity.getString(
+                    R.string.rain_stops_in, report.rainStopsInMinutes), true);
+        } else if (report.rainInMinutes > 0) {
+            detailAlert(box, activity.getString(R.string.rain_soon_in, report.rainInMinutes), true);
+        } else {
+            detailAlert(box, activity.getString(R.string.rain_none), false);
+        }
+        detailRow(box, activity.getString(R.string.weather_feels), degrees(report.feels) + "°");
+        detailRow(box, activity.getString(R.string.detail_high), degrees(report.high) + "°");
+        detailRow(box, activity.getString(R.string.detail_low), degrees(report.low) + "°");
+        detailRow(box, activity.getString(R.string.detail_rain_chance), report.todayRain + "%");
+        detailRow(box, activity.getString(R.string.chip_humidity), report.humidity + "%");
+        detailRow(box, activity.getString(R.string.detail_wind), Math.round(report.wind) + " km/h");
+        detailRow(box, activity.getString(R.string.chip_uv), Math.round(report.uv) + " · "
+                + activity.getString(Weather.uvLabel(report.uv)));
+        if (air != null) {
+            detailRow(box, activity.getString(R.string.chip_aqi), air.aqi + " · "
+                    + activity.getString(AirQuality.label(AirQuality.level(air.aqi))));
+        }
+        detailSection(box, activity.getString(R.string.detail_tomorrow));
+        detailRow(box, Weather.label(Weather.sky(report.tomorrowCode)),
+                degrees(report.tomorrowHigh) + "° / " + degrees(report.tomorrowLow) + "° · "
+                        + report.tomorrowRain + "%");
+        detailSection(box, activity.getString(R.string.detail_forecast));
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter when = DateTimeFormatter.ofPattern("EEEE, d/M", Locale.getDefault());
+        for (int i = 0; i < report.days.length; i++) {
+            Weather.Day day = report.days[i];
+            String name = when.format(today.plusDays(i + 1));
+            detailRow(box, name.substring(0, 1).toUpperCase(Locale.getDefault()) + name.substring(1),
+                    Weather.label(Weather.sky(day.code)) + " · " + degrees(day.high) + "° / "
+                            + degrees(day.low) + "°");
+        }
+        detailNote(box, updatedText(report.fetchedAt));
+    }
+
+    private static final int[] PAGE_TITLES = {R.string.sys_page_usage, R.string.sys_page_network,
+            R.string.sys_page_device, R.string.sys_page_space, R.string.sys_page_chip};
+
+    private void buildSystemDetail(LinearLayout box) {
+        detailTitle(box, activity.getString(R.string.widget_system));
+        for (int page = 0; page < SystemPages.COUNT; page++) {
+            List<SystemPages.Line> lines = systemPages.lines(page, lastCpu, showCpu());
+            if (lines.isEmpty()) continue;
+            detailSection(box, activity.getString(PAGE_TITLES[page]));
+            for (SystemPages.Line line : lines) detailRow(box, line.name, line.value);
+        }
+    }
+
+    private void buildAirDetail(LinearLayout box) {
+        detailTitle(box, activity.getString(R.string.air_quality));
+        if (air == null) {
+            detailNote(box, activity.getString(R.string.detail_no_data));
+            return;
+        }
+        detailBig(box, air.aqi + " · "
+                + activity.getString(AirQuality.label(AirQuality.level(air.aqi))));
+        detailRow(box, "PM2.5", air.pm25 + " µg/m³");
+        if (air.tomorrowMax >= 0) {
+            detailRow(box, activity.getString(R.string.detail_tomorrow), air.tomorrowMax + " · "
+                    + activity.getString(AirQuality.label(AirQuality.level(air.tomorrowMax))));
+        }
+        detailNote(box, updatedText(air.fetchedAt));
+    }
+
+    private void buildCalendarDetail(LinearLayout box) {
+        detailTitle(box, activity.getString(R.string.lunar_calendar));
+        LocalDate today = LocalDate.now();
+        LunarCalendar.Date l = LunarCalendar.toLunar(today);
+        String month = activity.getString(R.string.lunar_month, l.month);
+        if (l.leap) month = activity.getString(R.string.lunar_leap, month);
+        detailBig(box, l.day + " · " + month + " · "
+                + activity.getString(R.string.lunar_year, LunarCalendar.canChi(l.year)));
+        DateTimeFormatter solar = DateTimeFormatter.ofPattern("EEEE, d/M/yyyy", Locale.getDefault());
+        String day = solar.format(today);
+        detailRow(box, activity.getString(R.string.detail_solar),
+                day.substring(0, 1).toUpperCase(Locale.getDefault()) + day.substring(1));
+        detailSection(box, activity.getString(R.string.detail_upcoming));
+        List<ShownEvent> events = allCalendarEvents(today);
+        DateTimeFormatter when = DateTimeFormatter.ofPattern("EEEE, d/M", Locale.getDefault());
+        int shown = Math.min(events.size(), 10);
+        for (int i = 0; i < shown; i++) {
+            ShownEvent u = events.get(i);
+            String name = when.format(u.date);
+            String badge = u.days == 0 ? activity.getString(R.string.badge_today)
+                    : u.days == 1 ? activity.getString(R.string.badge_tomorrow)
+                    : activity.getString(R.string.badge_in_days, (int) u.days);
+            detailRow(box, u.name, name.substring(0, 1).toUpperCase(Locale.getDefault())
+                    + name.substring(1) + " · " + badge);
+        }
+    }
+
+    private void buildPricesDetail(LinearLayout box) {
+        detailTitle(box, activity.getString(R.string.prices));
+        if (prices == null || prices.empty()) {
+            detailNote(box, activity.getString(R.string.detail_no_data));
+            return;
+        }
+        String buy = activity.getString(R.string.prices_buy);
+        String sell = activity.getString(R.string.prices_sell);
+        detailSection(box, activity.getString(R.string.prices_gold));
+        detailRow(box, activity.getString(R.string.prices_gold_bar),
+                buy + " " + millions(prices.barBuy) + " · " + sell + " " + millions(prices.barSell));
+        detailRow(box, activity.getString(R.string.prices_gold_ring),
+                buy + " " + millions(prices.ringBuy) + " · " + sell + " " + millions(prices.ringSell));
+        detailSection(box, activity.getString(R.string.prices_fuel));
+        detailRow(box, activity.getString(R.string.prices_fuel_ron95), grouped(prices.ron95));
+        detailRow(box, activity.getString(R.string.prices_fuel_e5), grouped(prices.e5));
+        detailRow(box, activity.getString(R.string.prices_fuel_diesel), grouped(prices.diesel));
+        detailRow(box, activity.getString(R.string.prices_usd), grouped(prices.usd));
+        detailNote(box, updatedText(prices.fetchedAt) + " · "
+                + activity.getString(R.string.detail_sources_prices));
+    }
+
     // ---- colour ----------------------------------------------------------------------------------
 
     void setPalette(Palette p) {
@@ -1204,6 +1474,11 @@ final class WidgetShelf {
      * feed lands, the built-in rules in {@link LunarCalendar} stand in, so the card is never empty.
      */
     private List<ShownEvent> calendarEvents(LocalDate today) {
+        List<ShownEvent> events = allCalendarEvents(today);
+        return events.size() > eventRows.length ? events.subList(0, eventRows.length) : events;
+    }
+
+    private List<ShownEvent> allCalendarEvents(LocalDate today) {
         List<ShownEvent> events = new ArrayList<>();
         if (feedEvents != null) {
             for (HolidayFeed.Event e : feedEvents) {
@@ -1230,7 +1505,7 @@ final class WidgetShelf {
                         activity.getString(holidayName(LunarCalendar.Holiday.TET)), tet, today));
             }
         }
-        return events.size() > eventRows.length ? events.subList(0, eventRows.length) : events;
+        return events;
     }
 
     /** A fixed-date observance's next occurrence: this year's, or next year's once it has passed. */

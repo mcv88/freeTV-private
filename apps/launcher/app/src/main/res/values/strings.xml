@@ -38,6 +38,8 @@
     <string name="follow_theme">Follow theme (reset on-TV choices)</string>
     <string name="follow_theme_hint">Uses the current theme or built-in layout and motion settings. Pushing or resetting a theme also clears your on-TV choices.</string>
     <string name="tv_settings">TV system settings</string>
+    <string name="boot_app">App to open when the TV turns on</string>
+    <string name="boot_app_none">None — just the home screen</string>
     <string name="quick_picture">Display</string>
     <string name="quick_sleep_timer_hint">Find this option in TV settings</string>
     <string name="quick_sleep_timer">Sleep timer</string>
@@ -106,6 +108,9 @@
     <!-- Home widgets (WidgetShelf) -->
     <string name="widgets">Widgets</string>
     <string name="widget_layout">Card layout</string>
+    <string name="widget_tap">Tapping a card</string>
+    <string name="widget_tap_detail">Open the details popup</string>
+    <string name="widget_tap_classic">As before — flip pages</string>
     <string name="widget_layout_stacked">Stacked</string>
     <string name="widget_layout_wide">Wide</string>
     <string name="widget_card_height">Card height</string>
@@ -116,6 +121,16 @@
     <string name="widget_width_wide">Wide</string>
     <string name="widget_width_widest">Very wide</string>
     <string name="widget_height_value">%1$ddp</string>
+    <string name="detail_high">High</string>
+    <string name="detail_low">Low</string>
+    <string name="detail_rain_chance">Chance of rain today</string>
+    <string name="detail_wind">Wind</string>
+    <string name="detail_tomorrow">Tomorrow</string>
+    <string name="detail_forecast">The next 5 days</string>
+    <string name="detail_upcoming">Coming up</string>
+    <string name="detail_solar">Solar date</string>
+    <string name="detail_sources_prices">Sources: vang.today · Petrolimex region 1 · Vietcombank</string>
+    <string name="detail_no_data">No data yet — check back in a moment</string>
     <string name="weather">Weather</string>
     <string name="widget_system">This TV</string>
     <string name="widget_ram">Memory</string>
@@ -191,6 +206,9 @@
     <!-- Prices widget -->
     <string name="prices">Prices</string>
     <string name="prices_updated">Updated %s</string>
+    <string name="rain_soon_in">Rain in about %1$d minutes</string>
+    <string name="rain_stops_in">Raining now — stops in about %1$d minutes</string>
+    <string name="rain_none">No rain in the next two hours</string>
     <string name="prices_gold">Gold · ₫m/tael</string>
     <string name="prices_buy">Buy</string>
     <string name="prices_sell">Sell</string>

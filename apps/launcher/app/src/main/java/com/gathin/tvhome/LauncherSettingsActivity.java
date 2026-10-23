@@ -57,9 +57,11 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView nameChoice;
     private TextView widgetsChoice;
     private TextView widgetLayoutChoice;
+    private TextView widgetTapChoice;
     private final TextView[] widgetHeightRows = new TextView[WIDGET_IDS.length];
     private final TextView[] widgetWidthRows = new TextView[WIDGET_IDS.length];
     private TextView tvSettingsChoice;
+    private TextView bootAppChoice;
     private TextView colorChoice;
     private TextView backdropChoice;
     private TextView screensaverTimeChoice;
@@ -75,7 +77,7 @@ public final class LauncherSettingsActivity extends Activity {
     private Palette palette;
     /** Google TV's own home screen, which tvctl turns off when this launcher takes over. */
     private static final String STOCK_LAUNCHER = "com.google.android.apps.tv.launcherx";
-    /** The name Home greets with ("Good night, Kien"); greeting_name in config.xml until set here. */
+    /** The name Home greets with after the greeting; greeting_name in config.xml until set here. */
     static final String NAME_KEY = "greeting_name";
     private int columns;
     private boolean animations;
@@ -152,6 +154,7 @@ public final class LauncherSettingsActivity extends Activity {
         showLook(config);
         showScreensaver(config);
         showHomeStatus();
+        showBootApp(config);
         showUpdate();
         showAbout();
         refresh();
@@ -171,7 +174,8 @@ public final class LauncherSettingsActivity extends Activity {
         columnsChoice.requestFocus();
     }
 
-    /** The widgets the owner can show or hide one by one, in shelf order, with their settings rows. */
+    /** The widgets the owner can show or hide one by one, in shelf order,
+     *  each with its settings rows. */
     private static final String[] WIDGET_IDS = {WidgetShelf.WEATHER, WidgetShelf.SYSTEM,
             WidgetShelf.AIR, WidgetShelf.CALENDAR, WidgetShelf.PRICES};
     private static final int[] WIDGET_ROWS = {R.id.widgetToggleWeather, R.id.widgetToggleSystem,
@@ -213,7 +217,9 @@ public final class LauncherSettingsActivity extends Activity {
         String saved = choices.getString(WidgetShelf.ORDER_KEY, WidgetShelf.DEFAULT_ORDER);
         for (String id : saved.split(",")) {
             id = id.trim();
-            for (String known : WIDGET_IDS) if (known.equals(id) && !shown.contains(id)) shown.add(id);
+            for (String known : WIDGET_IDS) {
+                if (known.equals(id) && !shown.contains(id)) shown.add(id);
+            }
         }
         return shown;
     }
@@ -228,6 +234,7 @@ public final class LauncherSettingsActivity extends Activity {
             widgetRows[i].setAlpha(master ? 1f : 0.38f);
         }
         if (widgetLayoutChoice != null) refreshWidgetLayoutRows();
+        if (widgetTapChoice != null) refreshWidgetTapRow();
         if (widgetHeightRows[0] != null) refreshWidgetHeightRows();
         if (widgetWidthRows[0] != null) refreshWidgetWidthRows();
     }
@@ -241,6 +248,11 @@ public final class LauncherSettingsActivity extends Activity {
                 icon(R.drawable.ic_grid_view), null, null, null);
         widgetLayoutChoice.setOnClickListener(v -> chooseWidgetLayout(config));
         refreshWidgetLayoutRows();
+        widgetTapChoice = findViewById(R.id.widgetTapChoice);
+        widgetTapChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_open_in_new), null, null, null);
+        widgetTapChoice.setOnClickListener(v -> chooseWidgetTap(config));
+        refreshWidgetTapRow();
     }
 
     private static final int[] HEIGHT_ROWS = {R.id.widgetHeightWeather, R.id.widgetHeightSystem,
@@ -285,10 +297,35 @@ public final class LauncherSettingsActivity extends Activity {
         }, config);
     }
 
+    private void chooseWidgetTap(Config config) {
+        CharSequence[] labels = {getString(R.string.widget_tap_detail),
+                getString(R.string.widget_tap_classic)};
+        int selected = WidgetShelf.TAP_CLASSIC.equals(
+                choices.getString(WidgetShelf.TAP_KEY, WidgetShelf.TAP_DETAIL)) ? 1 : 0;
+        chooseOne(R.string.widget_tap, labels, null, selected, index -> {
+            choices.edit().putString(WidgetShelf.TAP_KEY,
+                    index == 1 ? WidgetShelf.TAP_CLASSIC : WidgetShelf.TAP_DETAIL).apply();
+            setResult(RESULT_OK);
+            refreshWidgetTapRow();
+        }, config);
+    }
+
+    private void refreshWidgetTapRow() {
+        boolean classic = WidgetShelf.TAP_CLASSIC.equals(
+                choices.getString(WidgetShelf.TAP_KEY, WidgetShelf.TAP_DETAIL));
+        widgetTapChoice.setText(item(getString(R.string.widget_tap),
+                getString(classic ? R.string.widget_tap_classic : R.string.widget_tap_detail)));
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        widgetTapChoice.setEnabled(master);
+        widgetTapChoice.setAlpha(master ? 1f : 0.38f);
+    }
+
     private static final int[] WIDTH_ROWS = {R.id.widgetWidthWeather, R.id.widgetWidthSystem,
             R.id.widgetWidthAir, R.id.widgetWidthCalendar, R.id.widgetWidthPrices};
-    private static final int[] WIDTH_LABELS = {R.string.widget_width_tiny, R.string.widget_width_narrow,
-            R.string.widget_width_medium, R.string.widget_width_wide, R.string.widget_width_widest};
+    private static final int[] WIDTH_LABELS = {R.string.widget_width_tiny,
+            R.string.widget_width_narrow, R.string.widget_width_medium,
+            R.string.widget_width_wide, R.string.widget_width_widest};
 
     /** One width row under each widget's height row: its share of the shelf's row, by percent. */
     private void showWidgetWidths(Config config) {
@@ -362,6 +399,64 @@ public final class LauncherSettingsActivity extends Activity {
         widgetLayoutChoice.setAlpha(master ? 1f : 0.38f);
     }
 
+    /** The app opened when the TV turns on (FPT Play, say), or none: just this home screen. */
+    private void showBootApp(Config config) {
+        bootAppChoice = findViewById(R.id.bootAppChoice);
+        bootAppChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_apps), null, null, null);
+        bootAppChoice.setOnClickListener(v -> chooseBootApp(config));
+        refreshBootAppRow();
+    }
+
+    private void refreshBootAppRow() {
+        String pkg = choices.getString(BootReceiver.PREF_KEY, "");
+        String name = getString(R.string.boot_app_none);
+        if (pkg != null && !pkg.isEmpty()) {
+            try {
+                PackageManager pm = getPackageManager();
+                name = pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();
+            } catch (PackageManager.NameNotFoundException gone) {
+                name = getString(R.string.boot_app_none);
+            }
+        }
+        bootAppChoice.setText(item(getString(R.string.boot_app), name));
+    }
+
+    /** Every app the TV can launch, TV entries first, by name; row one turns it off. */
+    private void chooseBootApp(Config config) {
+        PackageManager pm = getPackageManager();
+        java.util.Map<String, ResolveInfo> unique = new java.util.LinkedHashMap<>();
+        for (String category : new String[]{
+                Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER}) {
+            for (ResolveInfo info : pm.queryIntentActivities(
+                    new Intent(Intent.ACTION_MAIN).addCategory(category), 0)) {
+                if (info.activityInfo == null || !info.activityInfo.exported) continue;
+                String pkg = info.activityInfo.packageName;
+                if (!pkg.equals(getPackageName()) && !unique.containsKey(pkg)) {
+                    unique.put(pkg, info);
+                }
+            }
+        }
+        java.util.List<ResolveInfo> apps = new java.util.ArrayList<>(unique.values());
+        java.text.Collator collator = java.text.Collator.getInstance();
+        apps.sort((a, b) -> collator.compare(
+                a.loadLabel(pm).toString(), b.loadLabel(pm).toString()));
+        String current = choices.getString(BootReceiver.PREF_KEY, "");
+        CharSequence[] labels = new CharSequence[apps.size() + 1];
+        labels[0] = getString(R.string.boot_app_none);
+        int selected = 0;
+        for (int i = 0; i < apps.size(); i++) {
+            labels[i + 1] = apps.get(i).loadLabel(pm);
+            if (apps.get(i).activityInfo.packageName.equals(current)) selected = i + 1;
+        }
+        chooseOne(R.string.boot_app, labels, null, selected, index -> {
+            String pkg = index == 0 ? "" : apps.get(index - 1).activityInfo.packageName;
+            choices.edit().putString(BootReceiver.PREF_KEY, pkg).apply();
+            setResult(RESULT_OK);
+            refreshBootAppRow();
+        }, config);
+    }
+
     private boolean confirmKeyPressedHere;
 
     @Override
@@ -418,6 +513,7 @@ public final class LauncherSettingsActivity extends Activity {
                 getString(isDefault ? R.string.about_default_yes : R.string.about_default_no)));
         home.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_home), null, null, null);
         home.setOnClickListener(v -> open(new Intent(Settings.ACTION_HOME_SETTINGS)));
+
 
         TextView stock = findViewById(R.id.stockInfo);
         int setting;
