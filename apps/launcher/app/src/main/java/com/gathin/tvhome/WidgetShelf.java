@@ -1125,7 +1125,7 @@ final class WidgetShelf {
                     + activity.getString(AirQuality.label(AirQuality.level(air.aqi))));
         }
         detailSection(box, activity.getString(R.string.detail_tomorrow));
-        detailRow(box, Weather.label(Weather.sky(report.tomorrowCode)),
+        detailRow(box, activity.getString(Weather.label(Weather.sky(report.tomorrowCode))),
                 degrees(report.tomorrowHigh) + "° / " + degrees(report.tomorrowLow) + "° · "
                         + report.tomorrowRain + "%");
         detailSection(box, activity.getString(R.string.detail_forecast));
