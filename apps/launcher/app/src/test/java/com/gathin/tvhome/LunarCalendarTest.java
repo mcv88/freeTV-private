@@ -72,8 +72,8 @@ public class LunarCalendarTest {
     @Test
     public void nextHolidayCountsDownFromToday() {
         LunarCalendar.Upcoming u = LunarCalendar.nextHoliday(LocalDate.of(2026, 10, 21));
-        assertEquals(LunarCalendar.Holiday.CHRISTMAS, u.holiday);
-        assertEquals(65, u.days);
+        assertEquals(LunarCalendar.Holiday.TEACHERS, u.holiday);
+        assertEquals(30, u.days);
         LunarCalendar.Upcoming tet = LunarCalendar.nextHoliday(LocalDate.of(2027, 1, 2));
         assertEquals(LunarCalendar.Holiday.TET, tet.holiday);
         assertEquals(35, tet.days);

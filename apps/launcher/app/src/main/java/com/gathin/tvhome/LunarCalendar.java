@@ -36,7 +36,8 @@ final class LunarCalendar {
     /** The holidays the widget counts down to: fixed on the solar or on the lunar calendar. */
     enum Holiday {
         NEW_YEAR(false, 1, 1), TET(true, 1, 1), HUNG_KINGS(true, 10, 3), REUNIFICATION(false, 30, 4),
-        LABOUR(false, 1, 5), MID_AUTUMN(true, 15, 8), NATIONAL_DAY(false, 2, 9), CHRISTMAS(false, 25, 12);
+        LABOUR(false, 1, 5), MID_AUTUMN(true, 15, 8), NATIONAL_DAY(false, 2, 9), TEACHERS(false, 20, 11),
+        CHRISTMAS(false, 25, 12);
 
         final boolean lunar;
         final int day, month;
@@ -57,14 +58,21 @@ final class LunarCalendar {
         }
     }
 
-    /** The next holiday on or after today, and how many days away it is. */
+    /**
+     * An event on or after today: a holiday, or a full moon day (holiday null, its lunar month in
+     * fullMoonMonth). days is how far away it is and date when it falls.
+     */
     static final class Upcoming {
         final Holiday holiday;
         final long days;
+        final LocalDate date;
+        final int fullMoonMonth;
 
-        Upcoming(Holiday holiday, long days) {
+        Upcoming(Holiday holiday, long days, LocalDate date, int fullMoonMonth) {
             this.holiday = holiday;
             this.days = days;
+            this.date = date;
+            this.fullMoonMonth = fullMoonMonth;
         }
     }
 
@@ -81,10 +89,20 @@ final class LunarCalendar {
         List<Upcoming> all = new ArrayList<>();
         for (Holiday h : Holiday.values()) {
             LocalDate d = h.onOrAfter(today);
-            if (d != null) all.add(new Upcoming(h, ChronoUnit.DAYS.between(today, d)));
+            if (d != null) all.add(new Upcoming(h, ChronoUnit.DAYS.between(today, d), d, 0));
         }
         Collections.sort(all, (a, b) -> Long.compare(a.days, b.days));
         return all;
+    }
+
+    /** The next full moon day (the 15th of a lunar month) on or after today. */
+    static Upcoming nextFullMoon(LocalDate today) {
+        for (int i = 0; i < 40; i++) {
+            LocalDate date = today.plusDays(i);
+            Date lunar = toLunar(date);
+            if (lunar.day == 15) return new Upcoming(null, i, date, lunar.month);
+        }
+        return null;
     }
 
     /** The lunar year's name, e.g. "Bính Ngọ" for 2026. */
