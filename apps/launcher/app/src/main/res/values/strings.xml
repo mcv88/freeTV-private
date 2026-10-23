@@ -124,6 +124,13 @@
     <string name="holiday_mid_autumn">Mid-Autumn Festival</string>
     <string name="holiday_national_day">National Day</string>
     <string name="holiday_christmas">Christmas</string>
+    <string name="holiday_teachers">Teachers\' Day</string>
+    <string name="holiday_womens_day">Vietnamese Women\'s Day</string>
+    <string name="holiday_full_moon">Full moon (month %1$d)</string>
+    <string name="lunar_month">Month %1$d</string>
+    <string name="badge_today">Today</string>
+    <string name="badge_tomorrow">Tomorrow</string>
+    <string name="badge_in_days">in %1$d days</string>
     <string name="weather_clear">Clear</string>
     <string name="weather_partly">Partly cloudy</string>
     <string name="weather_cloudy">Cloudy</string>
@@ -138,7 +145,6 @@
     <string name="weather_tomorrow">%s tomorrow</string>
     <string name="weather_tomorrow_detail">Low %1$d°, %2$d%% rain</string>
     <string name="weather_offline">Can\'t reach the weather service</string>
-    <string name="widget_add">Add widget</string>
     <string name="widget_remove">Remove</string>
 
     <!-- Edit Home (apps, dock and widgets) -->
@@ -158,6 +164,35 @@
     <string name="air_detail">%1$s, PM2.5 %2$d</string>
     <string name="air_detail_tomorrow">%s at its worst</string>
     <string name="air_offline">Can\'t reach the air quality service</string>
+
+    <!-- Weather card details -->
+    <string name="weather_high_low">High %1$d° · Low %2$d°</string>
+    <string name="chip_rain">Rain</string>
+    <string name="chip_humidity">Humidity</string>
+    <string name="chip_aqi">AQI</string>
+    <string name="chip_uv">UV</string>
+    <string name="uv_low">Low</string>
+    <string name="uv_moderate">Moderate</string>
+    <string name="uv_high">High</string>
+    <string name="uv_very_high">Very high</string>
+    <string name="uv_extreme">Extreme</string>
+
+    <!-- Prices widget -->
+    <string name="prices">Prices</string>
+    <string name="prices_updated">Updated %s</string>
+    <string name="prices_gold">Gold · ₫m/tael</string>
+    <string name="prices_buy">Buy</string>
+    <string name="prices_sell">Sell</string>
+    <string name="prices_gold_bar">SJC gold bar</string>
+    <string name="prices_gold_ring">9999 gold ring</string>
+    <string name="prices_fuel">Fuel · ₫/litre</string>
+    <string name="prices_region1">Region 1</string>
+    <string name="prices_fuel_ron95">Petrol E10 RON 95-III</string>
+    <string name="prices_fuel_e5">Petrol E5 RON 92</string>
+    <string name="prices_fuel_diesel">Diesel DO 0.05S</string>
+    <string name="prices_usd">USD/VND (VCB)</string>
+    <string name="prices_offline">Can\'t reach the price sources</string>
+    <string name="prices_refresh">Refresh</string>
     <string name="aqi_good">Good</string>
     <string name="aqi_moderate">Moderate</string>
     <string name="aqi_sensitive">Unhealthy for some</string>
@@ -231,7 +266,7 @@
     <string name="running_stop_all">Stop all</string>
     <string name="try_again">Try again</string>
     <string name="animations_desc">Off moves focus instantly, lightest on slow TVs</string>
-    <string name="widgets_desc">Weather, air quality, lunar date and system stats</string>
+    <string name="widgets_desc">Weather, air quality, lunar date, prices and system stats</string>
     <string name="reboot">Boot options</string>
     <string name="reboot_desc">Needs network debugging on</string>
     <string name="reboot_action">Restart</string>

@@ -1473,6 +1473,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean on = dockRow && getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
                 .getBoolean(WidgetShelf.PREF_KEY, getResources().getBoolean(R.bool.widgets));
         widgets.setEnabled(on);
+        widgets.refreshOrder();
         pointHeaderDown();
         widgets.start();
     }

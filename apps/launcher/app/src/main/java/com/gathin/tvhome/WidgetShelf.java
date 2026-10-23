@@ -22,28 +22,39 @@ import com.google.android.material.color.utilities.Blend;
 import com.google.android.material.color.utilities.Hct;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.List;
 import java.util.function.IntConsumer;
 
 /**
- * Home's widget shelf: four cards in the open space between the header and the dock, one over each
- * dock column, so they line up with the apps below them.
+ * Home's widget shelf: the owner's cards in the open space between the header and the dock. They
+ * share the row's full width between them (the air card a smaller share, the weather and the
+ * calendar a larger one), so a hidden widget's room goes to the rest instead of staying empty.
  * <ul>
- *   <li>Weather ({@link Weather}): OK steps from now (temperature and range) to how it feels (humidity, wind) to tomorrow (high, low, chance of rain).</li>
+ *   <li>Weather ({@link Weather}): the temperature and today's range, chips for the chance of rain, the
+ *       humidity, the air quality and the UV, and the next five days.</li>
  *   <li>This TV: CPU load (every few seconds, {@link CpuMeter}), memory and storage in use, to read only. (Android 14 lets an app
  *       end only its own background processes, so a launcher cannot free other apps' memory itself.)</li>
  *   <li>Air quality: the US AQI and PM2.5 at the weather's place ({@link AirQuality}), its band in the
  *       band's colour harmonised with the scheme; OK switches between now and tomorrow's worst hour.</li>
- *   <li>Lunar calendar: today's lunar date, the year's can chi and the next holiday; OK steps through the
- *       holidays after it.</li>
+ *   <li>Lunar calendar: today's lunar date, the month and the year's can chi, and the next three events
+ *       with how far away each is: holidays from the published calendar feed ({@link HolidayFeed}),
+ *       fixed Vietnamese observances, and full moon days.</li>
+ *   <li>Prices ({@link Prices}): SJC gold, Petrolimex fuel for region 1 and Vietcombank's USD rate.</li>
  * </ul>
- * The owner picks which widgets show and in what order: an empty column holds an Add widget card (OK
- * lists the widgets not shown), and holding OK on a widget offers Move left, Move right and Remove.
- * The list is kept in the launcher's settings ({@link #ORDER_KEY}), and so is each widget's own
+ * The owner picks which widgets show and in what order: Launcher settings has a switch per widget,
+ * and holding OK on a widget offers Move and Remove. The list is kept in the launcher's settings
+ * ({@link #ORDER_KEY}), and so is each widget's own
  * settings (Settings on its menu): the place and unit of the weather (the air quality shares the
  * place), whether the calendar counts down to every holiday or only Tết, and whether This TV shows CPU.
  * It scrolls away with the grid when focus goes below the dock. Nothing runs while Home is hidden, and
@@ -55,9 +66,11 @@ final class WidgetShelf {
     static final String PREF_KEY = "widgets";
     /** The widgets on the shelf, left to right, comma separated. */
     static final String ORDER_KEY = "widget_order";
-    static final String WEATHER = "weather", SYSTEM = "system", AIR = "air", CALENDAR = "calendar";
-    private static final String[] ALL = {WEATHER, SYSTEM, AIR, CALENDAR};
-    private static final int MAX_CARDS = 4;
+    static final String WEATHER = "weather", SYSTEM = "system", AIR = "air", CALENDAR = "calendar",
+            PRICES = "prices";
+    /** Shown until the owner picks their own: the weather, the calendar and the prices. */
+    static final String DEFAULT_ORDER = WEATHER + "," + CALENDAR + "," + PRICES;
+    private static final String[] ALL = {WEATHER, SYSTEM, AIR, CALENDAR, PRICES};
 
     /** What the shelf needs from Home: its menus, the storage page, and a say when the cards change. */
     interface Host {
@@ -97,12 +110,9 @@ final class WidgetShelf {
     private final Activity activity;
     private final View shelf;
     private final WidgetCard[] cards;
-    private final WidgetCard addCard;
-    private final TextView addLabel;
-    private final ImageView addIcon;
     /** The widgets shown, left to right (ids from {@link #ALL}). */
     private final List<String> order = new ArrayList<>();
-    /** The cards on the shelf now, left to right: the widgets that fit, then Add widget if a column is free. */
+    /** The cards on the shelf now, left to right: the widgets shown. */
     private final List<WidgetCard> slots = new ArrayList<>();
     private RecyclerView lastGrid;
     /** Cards move when the list changes: added ones grow in, removed ones shrink out, the rest slide. */
@@ -114,18 +124,31 @@ final class WidgetShelf {
     /** The widget being carried in Edit Home, or null. */
     private String carried;
     private static final float ENTER_SCALE = 0.85f;
-    private int lastColumns = MAX_CARDS, lastDockTop;
-    private int cellOrigin, cellPitch, cellWidth, tilePitch;
+    private int lastColumns = 4, lastDockTop;
+    private int rowLeft, rowWidth, cardGap, tilePitch;
+    /** Each slot's place on the row (left edge and width, without the focus reach), from align. */
+    private final List<Integer> slotLefts = new ArrayList<>(), slotWidths = new ArrayList<>();
     /** The dock's first tile and how many tiles it has, for moving focus between cards and apps. */
     private int dockLeft, dockTiles = 1;
-    private final TextView weatherPlace, weatherTemp, weatherDetail;
+    private final TextView weatherPlace, weatherTemp, weatherCond, weatherDetail;
     private final ShapeBadge weatherIcon;
+    private final TextView weatherRainValue, weatherHumidityValue, weatherAqiValue, weatherUvValue;
+    private final TextView chipRainLabel, chipHumidityLabel, chipAqiLabel, chipUvLabel;
+    private final TextView[] dayNames, dayTemps;
+    private final ImageView[] dayIcons;
     private final TextView ramValue, storageValue;
     private final M3Progress ramBar, storageBar;
     private final ImageView ramIcon, storageIcon;
     private final TextView airLabel, airValue, airDetail;
     private final ShapeBadge airBadge;
-    private final TextView lunarLabel, lunarDate, holiday;
+    private final TextView lunarLabel, lunarDate, lunarMonth;
+    private final View[] eventRows;
+    private final TextView[] eventNames, eventWhens, eventBadges;
+    private final TextView pricesTitle, pricesGoldLabel, pricesFuelLabel;
+    private final TextView pricesBuyLabel, pricesSellLabel, pricesRegionLabel;
+    private final TextView[] pricesNames;
+    private final TextView pricesUpdated, pricesBarBuy, pricesBarSell, pricesRingBuy, pricesRingSell;
+    private final TextView pricesRon95, pricesE5, pricesDiesel, pricesUsd;
     private final TextView ramName, storageName, cpuName, cpuValue;
     private final M3Progress cpuBar;
     private final ImageView cpuIcon;
@@ -152,9 +175,7 @@ final class WidgetShelf {
     private static final String CITY_KEY = "weather_city", UNIT_KEY = "weather_unit",
             TET_ONLY_KEY = "calendar_tet_only", CPU_KEY = "system_cpu";
     /** The page each card opens on when Home shows, from its settings. */
-    private static final String WEATHER_PAGE_KEY = "weather_page", AIR_PAGE_KEY = "air_page",
-            SYSTEM_PAGE_KEY = "system_page";
-    private static final int[] WEATHER_PAGE_NAMES = {R.string.page_now, R.string.page_details, R.string.page_tomorrow};
+    private static final String AIR_PAGE_KEY = "air_page", SYSTEM_PAGE_KEY = "system_page";
     private static final int[] AIR_PAGE_NAMES = {R.string.page_today, R.string.page_tomorrow};
     /** The places offered, as geocoder queries ("name|country"); "" is wherever the IP says. */
     private static final String[] CITY_QUERIES = {"", "Hanoi|VN", "Ho Chi Minh City|VN", "Da Nang|VN", "Haiphong|VN",
@@ -173,10 +194,14 @@ final class WidgetShelf {
     private boolean airFetching, airTomorrow;
     private long airFailure;
 
-    private int holidayStep;
-    /** What the weather card shows, stepped by OK: now, the details of now, tomorrow. */
-    private int weatherPage;
-    private static final int WEATHER_PAGES = 3;
+    private Prices.Report prices;
+    private boolean pricesFetching;
+    private long pricesFailure;
+
+    /** Vietnam's holidays from the published calendar feed ({@link HolidayFeed}), cached on the way in. */
+    private List<HolidayFeed.Event> feedEvents;
+    private boolean feedFetching;
+
     /** What the system card shows, stepped by OK (SystemPages), in its three meter rows. */
     private int systemPage;
     private final SystemPages systemPages;
@@ -196,11 +221,30 @@ final class WidgetShelf {
         prefs = activity.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
         cpu = new CpuMeter(activity);
         cards = new WidgetCard[]{shelf.findViewById(R.id.widgetWeather), shelf.findViewById(R.id.widgetSystem),
-                shelf.findViewById(R.id.widgetAir), shelf.findViewById(R.id.widgetCalendar)};
+                shelf.findViewById(R.id.widgetAir), shelf.findViewById(R.id.widgetCalendar),
+                shelf.findViewById(R.id.widgetPrices)};
         weatherPlace = shelf.findViewById(R.id.weatherPlace);
         weatherTemp = shelf.findViewById(R.id.weatherTemp);
+        weatherCond = shelf.findViewById(R.id.weatherCond);
         weatherDetail = shelf.findViewById(R.id.weatherDetail);
         weatherIcon = shelf.findViewById(R.id.weatherIcon);
+        chipRainLabel = shelf.findViewById(R.id.chipRainLabel);
+        chipHumidityLabel = shelf.findViewById(R.id.chipHumidityLabel);
+        chipAqiLabel = shelf.findViewById(R.id.chipAqiLabel);
+        chipUvLabel = shelf.findViewById(R.id.chipUvLabel);
+        weatherRainValue = shelf.findViewById(R.id.weatherRainValue);
+        weatherHumidityValue = shelf.findViewById(R.id.weatherHumidityValue);
+        weatherAqiValue = shelf.findViewById(R.id.weatherAqiValue);
+        weatherUvValue = shelf.findViewById(R.id.weatherUvValue);
+        dayNames = new TextView[]{shelf.findViewById(R.id.dayName0), shelf.findViewById(R.id.dayName1),
+                shelf.findViewById(R.id.dayName2), shelf.findViewById(R.id.dayName3),
+                shelf.findViewById(R.id.dayName4)};
+        dayTemps = new TextView[]{shelf.findViewById(R.id.dayTemp0), shelf.findViewById(R.id.dayTemp1),
+                shelf.findViewById(R.id.dayTemp2), shelf.findViewById(R.id.dayTemp3),
+                shelf.findViewById(R.id.dayTemp4)};
+        dayIcons = new ImageView[]{shelf.findViewById(R.id.dayIcon0), shelf.findViewById(R.id.dayIcon1),
+                shelf.findViewById(R.id.dayIcon2), shelf.findViewById(R.id.dayIcon3),
+                shelf.findViewById(R.id.dayIcon4)};
         ramValue = shelf.findViewById(R.id.ramValue);
         storageValue = shelf.findViewById(R.id.storageValue);
         ramBar = shelf.findViewById(R.id.ramBar);
@@ -214,7 +258,34 @@ final class WidgetShelf {
         airBadge.setIcon(activity.getDrawable(R.drawable.ic_air));
         lunarLabel = shelf.findViewById(R.id.lunarLabel);
         lunarDate = shelf.findViewById(R.id.lunarDate);
-        holiday = shelf.findViewById(R.id.holiday);
+        lunarMonth = shelf.findViewById(R.id.lunarMonth);
+        eventRows = new View[]{shelf.findViewById(R.id.eventRow0), shelf.findViewById(R.id.eventRow1),
+                shelf.findViewById(R.id.eventRow2)};
+        eventNames = new TextView[]{shelf.findViewById(R.id.eventName0), shelf.findViewById(R.id.eventName1),
+                shelf.findViewById(R.id.eventName2)};
+        eventWhens = new TextView[]{shelf.findViewById(R.id.eventWhen0), shelf.findViewById(R.id.eventWhen1),
+                shelf.findViewById(R.id.eventWhen2)};
+        eventBadges = new TextView[]{shelf.findViewById(R.id.eventBadge0), shelf.findViewById(R.id.eventBadge1),
+                shelf.findViewById(R.id.eventBadge2)};
+        pricesTitle = shelf.findViewById(R.id.pricesTitle);
+        pricesGoldLabel = shelf.findViewById(R.id.pricesGoldLabel);
+        pricesFuelLabel = shelf.findViewById(R.id.pricesFuelLabel);
+        pricesBuyLabel = shelf.findViewById(R.id.pricesBuyLabel);
+        pricesSellLabel = shelf.findViewById(R.id.pricesSellLabel);
+        pricesRegionLabel = shelf.findViewById(R.id.pricesRegionLabel);
+        pricesNames = new TextView[]{shelf.findViewById(R.id.pricesBarName),
+                shelf.findViewById(R.id.pricesRingName), shelf.findViewById(R.id.pricesRon95Name),
+                shelf.findViewById(R.id.pricesE5Name), shelf.findViewById(R.id.pricesDieselName),
+                shelf.findViewById(R.id.pricesUsdName)};
+        pricesUpdated = shelf.findViewById(R.id.pricesUpdated);
+        pricesBarBuy = shelf.findViewById(R.id.pricesBarBuy);
+        pricesBarSell = shelf.findViewById(R.id.pricesBarSell);
+        pricesRingBuy = shelf.findViewById(R.id.pricesRingBuy);
+        pricesRingSell = shelf.findViewById(R.id.pricesRingSell);
+        pricesRon95 = shelf.findViewById(R.id.pricesRon95);
+        pricesE5 = shelf.findViewById(R.id.pricesE5);
+        pricesDiesel = shelf.findViewById(R.id.pricesDiesel);
+        pricesUsd = shelf.findViewById(R.id.pricesUsd);
         cpuName = shelf.findViewById(R.id.cpuName);
         cpuValue = shelf.findViewById(R.id.cpuValue);
         cpuBar = shelf.findViewById(R.id.cpuBar);
@@ -226,16 +297,14 @@ final class WidgetShelf {
         rowNames = new TextView[]{cpuName, ramName, storageName};
         rowValues = new TextView[]{cpuValue, ramValue, storageValue};
         rowBars = new M3Progress[]{cpuBar, ramBar, storageBar};
-        for (TextView line : new TextView[]{weatherPlace, weatherDetail, airLabel, airDetail, lunarLabel, holiday}) {
+        for (TextView line : new TextView[]{weatherPlace, weatherDetail, airLabel, airDetail, lunarLabel}) {
             TextFit.attach(line);
         }
+        for (TextView line : eventNames) TextFit.attach(line);
+        for (TextView line : eventWhens) TextFit.attach(line);
         for (int i = 0; i < rowNames.length; i++) {
             TextFit.attachRow(rowNames[i], rowValues[i], (View) rowNames[i].getParent());
         }
-        addCard = shelf.findViewById(R.id.widgetAdd);
-        addLabel = shelf.findViewById(R.id.widgetAddLabel);
-        addIcon = shelf.findViewById(R.id.widgetAddIcon);
-        addCard.setGhost(true);
         loadOrder();
 
 
@@ -259,13 +328,7 @@ final class WidgetShelf {
                 return true;
             });
         }
-        addCard.setOnClickListener(v -> showAddMenu());
         for (WidgetCard card : allCards()) card.setMotion(motion);
-        cards[0].setOnClickListener(v -> {
-            weatherPage = (weatherPage + 1) % WEATHER_PAGES;
-            cards[0].turn(this::paintWeather);
-            refreshWeather(false);
-        });
         cards[1].setOnClickListener(v -> {
             systemPage = (systemPage + 1) % SystemPages.COUNT;
             cards[1].turn(this::paintSystem);
@@ -273,10 +336,6 @@ final class WidgetShelf {
         cards[2].setOnClickListener(v -> {
             airTomorrow = !airTomorrow;
             cards[2].turn(this::paintAir);
-        });
-        cards[3].setOnClickListener(v -> {
-            holidayStep++;
-            cards[3].turn(this::paintCalendar);
         });
     }
 
@@ -306,11 +365,11 @@ final class WidgetShelf {
 
     /** The card header buttons should go down to: the last one, under them. */
     int cardUnderHeaderButtons() {
-        return slots.isEmpty() ? addCard.getId() : slots.get(slots.size() - 1).getId();
+        return slots.isEmpty() ? View.NO_ID : slots.get(slots.size() - 1).getId();
     }
 
     private WidgetCard[] allCards() {
-        return new WidgetCard[]{cards[0], cards[1], cards[2], cards[3], addCard};
+        return cards;
     }
 
     private WidgetCard card(String id) {
@@ -326,13 +385,25 @@ final class WidgetShelf {
 
     private void loadOrder() {
         order.clear();
-        String saved = activity.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE)
-                .getString(ORDER_KEY, String.join(",", ALL));
-        for (String id : saved.split(",")) {
+        order.addAll(savedOrder());
+    }
+
+    /** The saved list: the widgets shown, left to right. */
+    private List<String> savedOrder() {
+        List<String> saved = new ArrayList<>();
+        String text = prefs.getString(ORDER_KEY, DEFAULT_ORDER);
+        for (String id : text.split(",")) {
             id = id.trim();
             if (id.equals("now_playing")) id = AIR;   // the widget air quality replaced, in its place
-            if (card(id) != null && !order.contains(id)) order.add(id);
+            if (card(id) != null && !saved.contains(id)) saved.add(id);
         }
+        return saved;
+    }
+
+    /** Launcher settings flipped a widget's switch: take the list as saved there, without stealing focus. */
+    void refreshOrder() {
+        List<String> saved = savedOrder();
+        if (!saved.equals(order)) applyOrder(saved, null, 0, false);
     }
 
     /**
@@ -343,7 +414,7 @@ final class WidgetShelf {
     private void setOrder(List<String> next, String focusId, int fallbackColumn, String removing) {
         WidgetCard leaving = removing == null ? null : card(removing);
         if (!motion || leaving == null) {
-            applyOrder(next, focusId, fallbackColumn);
+            applyOrder(next, focusId, fallbackColumn, true);
             return;
         }
         leaving.animate().cancel();
@@ -353,11 +424,11 @@ final class WidgetShelf {
                     leaving.setAlpha(1f);
                     leaving.setScaleX(1f);
                     leaving.setScaleY(1f);
-                    applyOrder(next, focusId, fallbackColumn);
+                    applyOrder(next, focusId, fallbackColumn, true);
                 }).start();
     }
 
-    private void applyOrder(List<String> next, String focusId, int fallbackColumn) {
+    private void applyOrder(List<String> next, String focusId, int fallbackColumn, boolean refocus) {
         Map<WidgetCard, Integer> before = new HashMap<>();
         for (WidgetCard c : slots) before.put(c, c.getLeft());
         order.clear();
@@ -393,7 +464,7 @@ final class WidgetShelf {
                 }
             });
         }
-        shelf.post(() -> {
+        if (refocus) shelf.post(() -> {
             WidgetCard target = focusId != null ? card(focusId) : null;
             if (target == null || !slots.contains(target)) {
                 target = slots.isEmpty() ? null : slots.get(Math.max(0, Math.min(fallbackColumn, slots.size() - 1)));
@@ -405,25 +476,12 @@ final class WidgetShelf {
         });
     }
 
-    private void showAddMenu() {
-        List<MenuItem> items = new ArrayList<>();
-        for (String id : ALL) {
-            if (has(id)) continue;
-            items.add(new MenuItem(icon(id), activity.getString(name(id)), () -> {
-                List<String> next = new ArrayList<>(order);
-                next.add(id);
-                setOrder(next, id, next.size() - 1, null);
-            }));
-        }
-        if (!items.isEmpty()) host.showMenu(addCard, items);
-    }
-
     private void showEditMenu(String id) {
         int at = order.indexOf(id);
         if (at < 0) return;
         List<MenuItem> items = new ArrayList<>();
         // Move works as on an app's menu: Edit Home starts with this widget picked up.
-        if (Math.min(order.size(), slotsLimit()) > 1) {
+        if (order.size() > 1) {
             items.add(new MenuItem(R.drawable.ic_move, activity.getString(R.string.tile_move), () -> {
                 if (!host.startEditing()) return;
                 WidgetCard card = card(id);
@@ -446,7 +504,7 @@ final class WidgetShelf {
     private void move(String id, int by) {
         List<String> next = new ArrayList<>(order);
         int at = next.indexOf(id);
-        if (at < 0 || at + by < 0 || at + by >= Math.min(next.size(), slotsLimit())) return;
+        if (at < 0 || at + by < 0 || at + by >= next.size()) return;
         Collections.swap(next, at, at + by);
         setOrder(next, id, at + by, null);
     }
@@ -467,7 +525,7 @@ final class WidgetShelf {
     /**
      * A key in Edit Home with focus on the shelf. OK picks the focused widget up; while it is carried,
      * Left and Right move it along the shelf, Up and Down do nothing, and OK or Back put it down. False
-     * for keys left to the activity (Back with nothing carried ends the mode; OK on Add widget opens it).
+     * for keys left to the activity (Back with nothing carried ends the mode).
      */
     boolean handleEditKey(KeyEvent event, View focused) {
         if (!editing || !(focused instanceof WidgetCard) || focused.getParent() != shelf) return false;
@@ -554,10 +612,10 @@ final class WidgetShelf {
                             prefs.edit().putString(UNIT_KEY, i == 1 ? "f" : "c").apply();
                             paintWeather();
                         })));
-                items.add(opensOn(anchor, WEATHER_PAGE_KEY, WEATHER_PAGE_NAMES, i -> {
-                    weatherPage = i;
-                    paintWeather();
-                }));
+                break;
+            case PRICES:
+                items.add(new MenuItem(R.drawable.ic_refresh, activity.getString(R.string.prices_refresh),
+                        () -> refreshPrices(true)));
                 break;
             case AIR:
                 items.add(setting(R.drawable.ic_location, R.string.setting_location_shared, cityName(city()),
@@ -573,7 +631,6 @@ final class WidgetShelf {
                 items.add(setting(R.drawable.ic_timer, R.string.setting_countdown, countdown[tetOnly() ? 1 : 0],
                         () -> showChoices(anchor, countdown, tetOnly() ? 1 : 0, i -> {
                             prefs.edit().putBoolean(TET_ONLY_KEY, i == 1).apply();
-                            holidayStep = 0;
                             paintCalendar();
                         })));
                 break;
@@ -643,8 +700,10 @@ final class WidgetShelf {
     }
 
     /**
-     * How many cards fit: one per dock column, at most four. The shelf spans the full row of columns even
-     * when the dock holds fewer apps: DockDecoration centres a short dock, so the full row is centred on it.
+     * The row the cards share: the full row of dock columns, even when the dock holds fewer apps
+     * (DockDecoration centres a short dock, so the full row is centred on it). The cards divide the
+     * row between them by {@link #weight(WidgetCard)} instead of sitting one over each column, so
+     * hiding a widget widens the rest instead of leaving its column empty.
      */
     private boolean measureDock(RecyclerView grid, int columns) {
         int itemCount = grid.getAdapter() == null ? 0 : grid.getAdapter().getItemCount();
@@ -657,18 +716,24 @@ final class WidgetShelf {
         int tileWidth = first.width();
         int pitch = second != null ? Math.abs(second.left - first.left)
                 : (grid.getWidth() - grid.getPaddingLeft() - grid.getPaddingRight()) / Math.max(1, columns);
-        int gap = pitch - tileWidth;
         int tilesLeft = Math.min(first.left, last.left);
         int centre = (tilesLeft + Math.max(first.right, last.right)) / 2;
-        int rowWidth = (columns - 1) * pitch + tileWidth;
-        int cells = slotsLimit();
-        cellOrigin = centre - rowWidth / 2;
-        cellWidth = (rowWidth - gap * (cells - 1)) / cells;
-        cellPitch = cellWidth + gap;
+        rowWidth = (columns - 1) * pitch + tileWidth;
+        rowLeft = centre - rowWidth / 2;
+        cardGap = pitch - tileWidth;
         tilePitch = pitch;
         dockLeft = tilesLeft;
         dockTiles = lastColumn + 1;
         return true;
+    }
+
+    /** A card's share of the row: the air card reads at a glance, so it takes less; the weather
+     * and the calendar carry lists, so they take more. */
+    private double weight(WidgetCard card) {
+        String id = idOf(card);
+        if (WEATHER.equals(id) || CALENDAR.equals(id)) return 1.15;
+        if (AIR.equals(id)) return 0.7;
+        return 1.0;
     }
 
     private Rect tileBounds(RecyclerView grid, int position) {
@@ -682,19 +747,24 @@ final class WidgetShelf {
     }
 
     private int dockColumnUnderCard(int card) {
-        if (tilePitch <= 0) return card;
-        int centre = cellOrigin + card * cellPitch + cellWidth / 2;
+        if (tilePitch <= 0 || card >= slotLefts.size()) return card;
+        int centre = slotLefts.get(card) + slotWidths.get(card) / 2;
         return Math.max(0, Math.min(dockTiles - 1, Math.floorDiv(centre - dockLeft, tilePitch)));
     }
 
+    /** The card whose centre is nearest the dock column's centre: where Up from that app lands. */
     private int cardOverDockColumn(int column) {
-        if (cellPitch <= 0) return column;
+        if (slotLefts.isEmpty()) return column;
         int centre = dockLeft + column * tilePitch + tilePitch / 2;
-        return Math.max(0, Math.floorDiv(centre - cellOrigin, cellPitch));
-    }
-
-    private int slotsLimit() {
-        return Math.min(MAX_CARDS, lastColumns);
+        int best = 0, bestDistance = Integer.MAX_VALUE;
+        for (int i = 0; i < slotLefts.size(); i++) {
+            int distance = Math.abs(slotLefts.get(i) + slotWidths.get(i) / 2 - centre);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+        return best;
     }
 
     private static int name(String id) {
@@ -702,6 +772,7 @@ final class WidgetShelf {
             case WEATHER: return R.string.weather;
             case SYSTEM: return R.string.widget_system;
             case AIR: return R.string.air_quality;
+            case PRICES: return R.string.prices;
             default: return R.string.lunar_calendar;
         }
     }
@@ -711,6 +782,7 @@ final class WidgetShelf {
             case WEATHER: return R.drawable.ic_w_partly_day;
             case SYSTEM: return R.drawable.ic_memory;
             case AIR: return R.drawable.ic_air;
+            case PRICES: return R.drawable.ic_speed;
             default: return R.drawable.ic_calendar;
         }
     }
@@ -720,10 +792,9 @@ final class WidgetShelf {
     void start() {
         if (!enabled || started) return;
         started = true;
-        weatherPage = prefs.getInt(WEATHER_PAGE_KEY, 0) % WEATHER_PAGES;
         airTomorrow = prefs.getInt(AIR_PAGE_KEY, 0) == 1;
         systemPage = prefs.getInt(SYSTEM_PAGE_KEY, 0) % SystemPages.COUNT;
-        if (has(CALENDAR)) paintCalendar();
+        if (has(CALENDAR)) refreshHolidays(false);
         if (has(SYSTEM)) {
             // The baseline: the first figure comes with the first tick, unless the TV hides every source.
             if (cpu.sample() == CpuMeter.UNAVAILABLE) lastCpu = CpuMeter.UNAVAILABLE;
@@ -732,6 +803,7 @@ final class WidgetShelf {
         }
         if (has(WEATHER)) refreshWeather(false);
         if (has(AIR)) refreshAir(false);
+        if (has(PRICES)) refreshPrices(false);
     }
 
     void stop() {
@@ -744,19 +816,19 @@ final class WidgetShelf {
     /** Once a minute while Home shows. */
     void tick() {
         if (!started) return;
-        if (has(CALENDAR)) paintCalendar();
+        if (has(CALENDAR)) refreshHolidays(false);
         if (has(SYSTEM)) paintSystem();
         if (has(WEATHER)) refreshWeather(false);
         if (has(AIR)) refreshAir(false);
+        if (has(PRICES)) refreshPrices(false);
     }
 
     // ---- placement -------------------------------------------------------------------------------
 
     /**
-     * Puts the shown cards over the dock's columns, left to right (each card's visible part exactly over
-     * its tile, its focus room around it), and centres the shelf in the space above the dock. dockTop is
-     * the dock's top in the shelf's parent, which also holds the grid. At most one card per column and
-     * four in all; a free column gets the Add widget card.
+     * Lays the shown cards across the row's full width, left to right (each with its focus room around
+     * it), and centres the shelf in the space above the dock. dockTop is the dock's top in the shelf's
+     * parent, which also holds the grid.
      */
     void align(RecyclerView grid, int columns, int dockTop) {
         lastGrid = grid;
@@ -764,21 +836,33 @@ final class WidgetShelf {
         lastDockTop = dockTop;
         if (!enabled) return;
         slots.clear();
-        for (String id : order) if (slots.size() < slotsLimit()) slots.add(card(id));
-        if (slots.size() < slotsLimit() && order.size() < ALL.length) slots.add(addCard);
+        for (String id : order) slots.add(card(id));
         for (WidgetCard c : allCards()) {
             int visibility = slots.contains(c) ? View.VISIBLE : View.GONE;
             if (c.getVisibility() != visibility) c.setVisibility(visibility);
         }
         if (!measureDock(grid, columns)) return;
 
+        slotLefts.clear();
+        slotWidths.clear();
+        double weights = 0;
+        for (WidgetCard c : slots) weights += weight(c);
+        int room = rowWidth - cardGap * Math.max(0, slots.size() - 1);
+        int nextLeft = rowLeft;
+        for (int index = 0; index < slots.size(); index++) {
+            int width = index == slots.size() - 1 ? rowLeft + rowWidth - nextLeft
+                    : Math.round((float) (room * weight(slots.get(index)) / weights));
+            slotLefts.add(nextLeft);
+            slotWidths.add(width);
+            nextLeft += width + cardGap;
+        }
         int inset = Math.round(WidgetCard.REACH_DP * density);
         boolean moved = false;
         for (int index = 0; index < slots.size(); index++) {
             WidgetCard card = slots.get(index);
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) card.getLayoutParams();
-            int left = cellOrigin + index * cellPitch - inset - shelf.getLeft();
-            int width = cellWidth + 2 * inset;
+            int left = slotLefts.get(index) - inset - shelf.getLeft();
+            int width = slotWidths.get(index) + 2 * inset;
             if (lp.leftMargin != left || lp.width != width) {
                 lp.leftMargin = left;
                 lp.width = width;
@@ -820,11 +904,21 @@ final class WidgetShelf {
         palette = p;
         for (WidgetCard c : allCards()) c.setPalette(p);
         highlight.setColor(editing ? p.tertiary : p.primary);
-        addLabel.setTextColor(p.onSurfaceVariant);
-        addIcon.setImageTintList(ColorStateList.valueOf(p.onSurfaceVariant));
-        for (TextView t : new TextView[]{weatherPlace, airLabel, lunarLabel}) t.setTextColor(p.onSurfaceVariant);
-        for (TextView t : new TextView[]{weatherTemp, lunarDate, airValue, cpuName, ramName, storageName}) t.setTextColor(p.onSurface);
-        for (TextView t : new TextView[]{weatherDetail, airDetail, holiday, cpuValue, ramValue, storageValue}) t.setTextColor(p.onSurfaceVariant);
+        for (TextView t : new TextView[]{weatherPlace, airLabel, lunarLabel, chipRainLabel, chipHumidityLabel,
+                chipAqiLabel, chipUvLabel, pricesTitle, pricesGoldLabel, pricesFuelLabel, pricesBuyLabel,
+                pricesSellLabel, pricesRegionLabel, pricesUpdated}) t.setTextColor(p.onSurfaceVariant);
+        for (TextView t : dayNames) t.setTextColor(p.onSurfaceVariant);
+        for (TextView t : new TextView[]{weatherTemp, weatherCond, lunarDate, lunarMonth, airValue, cpuName,
+                ramName, storageName, weatherRainValue, weatherHumidityValue, weatherAqiValue, weatherUvValue})
+            t.setTextColor(p.onSurface);
+        for (TextView t : dayTemps) t.setTextColor(p.onSurface);
+        for (TextView t : eventNames) t.setTextColor(p.onSurface);
+        for (TextView t : pricesNames) t.setTextColor(p.onSurface);
+        for (TextView t : new TextView[]{weatherDetail, airDetail, cpuValue, ramValue, storageValue,
+                pricesBarBuy, pricesBarSell, pricesRingBuy, pricesRingSell, pricesRon95, pricesE5,
+                pricesDiesel, pricesUsd}) t.setTextColor(p.onSurfaceVariant);
+        for (TextView t : eventWhens) t.setTextColor(p.onSurfaceVariant);
+        for (ImageView icon : dayIcons) icon.setColorFilter(p.onSurfaceVariant);
         cpuIcon.setImageTintList(ColorStateList.valueOf(p.primary));
         cpuBar.setPalette(p);
         ramIcon.setImageTintList(ColorStateList.valueOf(p.primary));
@@ -867,29 +961,71 @@ final class WidgetShelf {
         if (report == null) {
             weatherPlace.setText(R.string.weather);
             weatherTemp.setText("–");
+            weatherCond.setText("");
             weatherDetail.setText(lastFailure > 0 ? activity.getString(R.string.weather_offline) : "");
             weatherIcon.setIcon(activity.getDrawable(R.drawable.ic_w_cloud));
+            paintWeatherDetails();
             return;
         }
         String place = report.place.isEmpty() ? activity.getString(R.string.weather) : report.place;
-        Weather.Sky sky = Weather.sky(weatherPage == 2 ? report.tomorrowCode : report.code);
-        if (weatherPage == 1) {
-            weatherPlace.setText(R.string.weather_feels);
-            weatherTemp.setText(degrees(report.feels) + "°");
-            weatherDetail.setText(activity.getString(fahrenheit() ? R.string.weather_details_mph : R.string.weather_details,
-                    report.humidity, (int) Math.round(fahrenheit() ? report.wind / 1.609 : report.wind)));
-        } else if (weatherPage == 2) {
-            weatherPlace.setText(activity.getString(R.string.weather_tomorrow, place));
-            weatherTemp.setText(degrees(report.tomorrowHigh) + "°");
-            weatherDetail.setText(activity.getString(R.string.weather_tomorrow_detail, degrees(report.tomorrowLow),
-                    report.tomorrowRain));
-        } else {
-            weatherPlace.setText(place);
-            weatherTemp.setText(degrees(report.temp) + "°");
-            weatherDetail.setText(activity.getString(R.string.weather_range, activity.getString(Weather.label(sky)),
-                    degrees(report.high), degrees(report.low)));
+        Weather.Sky sky = Weather.sky(report.code);
+        weatherPlace.setText(place);
+        weatherTemp.setText(degrees(report.temp) + "°");
+        weatherCond.setText(Weather.label(sky));
+        weatherDetail.setText(activity.getString(R.string.weather_high_low,
+                degrees(report.high), degrees(report.low)));
+        weatherIcon.setIcon(activity.getDrawable(Weather.icon(sky, report.day)));
+        paintWeatherDetails();
+    }
+
+    /** The chips under the temperature (rain, humidity, the air, the UV) and the next five days. */
+    private void paintWeatherDetails() {
+        if (report == null) {
+            weatherRainValue.setText("–");
+            weatherHumidityValue.setText("–");
+            weatherAqiValue.setText("–");
+            weatherUvValue.setText("–");
+            for (int i = 0; i < dayNames.length; i++) {
+                dayNames[i].setText("");
+                dayIcons[i].setImageDrawable(null);
+                dayTemps[i].setText("");
+            }
+            return;
         }
-        weatherIcon.setIcon(activity.getDrawable(Weather.icon(sky, weatherPage == 2 || report.day)));
+        weatherRainValue.setText(report.todayRain + "%");
+        weatherHumidityValue.setText(report.humidity + "%");
+        weatherAqiValue.setText(air == null ? "–" : String.valueOf(air.aqi));
+        weatherUvValue.setText(Math.round(report.uv) + " · "
+                + activity.getString(Weather.uvLabel(report.uv)));
+        LocalDate today = LocalDate.now();
+        for (int i = 0; i < dayNames.length; i++) {
+            if (i >= report.days.length) {
+                dayNames[i].setText("");
+                dayIcons[i].setImageDrawable(null);
+                dayTemps[i].setText("");
+                continue;
+            }
+            Weather.Day day = report.days[i];
+            dayNames[i].setText(dayName(today.plusDays(i + 1)));
+            dayIcons[i].setImageResource(Weather.icon(Weather.sky(day.code), true));
+            dayTemps[i].setText(degrees(day.high) + "°");
+        }
+    }
+
+    /** A day's short name: T2 to T7 and CN in Vietnamese, the locale's short name in any other. */
+    private static String dayName(LocalDate date) {
+        if ("vi".equals(Locale.getDefault().getLanguage())) {
+            switch (date.getDayOfWeek()) {
+                case MONDAY: return "T2";
+                case TUESDAY: return "T3";
+                case WEDNESDAY: return "T4";
+                case THURSDAY: return "T5";
+                case FRIDAY: return "T6";
+                case SATURDAY: return "T7";
+                default: return "CN";
+            }
+        }
+        return date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.getDefault());
     }
 
     /** A Celsius reading in the unit the owner chose, rounded. */
@@ -945,6 +1081,7 @@ final class WidgetShelf {
                 if (result != null) air = result;
                 else airFailure = System.currentTimeMillis();
                 paintAir();
+                paintWeather();
             });
         }, "air").start();
     }
@@ -979,23 +1116,111 @@ final class WidgetShelf {
 
     // ---- lunar calendar --------------------------------------------------------------------------
 
+    /** Paints from the cached feed at once, and refetches it in the background when it is stale. */
+    private void refreshHolidays(boolean force) {
+        if (feedEvents == null) feedEvents = HolidayFeed.cached(activity);
+        paintCalendar();
+        if (feedFetching || !force && !HolidayFeed.stale(activity, System.currentTimeMillis())) return;
+        feedFetching = true;
+        Context app = activity.getApplicationContext();
+        new Thread(() -> {
+            List<HolidayFeed.Event> fresh = HolidayFeed.fetch(app);
+            main.post(() -> {
+                feedFetching = false;
+                if (!fresh.isEmpty()) feedEvents = fresh;
+                paintCalendar();
+            });
+        }, "holidays").start();
+    }
+
+    /** A day the calendar card counts down to: its name as published and how far away it is. */
+    private static final class ShownEvent {
+        final String name;
+        final LocalDate date;
+        final long days;
+
+        ShownEvent(String name, LocalDate date, LocalDate today) {
+            this.name = name;
+            this.date = date;
+            this.days = ChronoUnit.DAYS.between(today, date);
+        }
+    }
+
+    /**
+     * The next events, soonest first: the feed's holidays (real published dates, Tet and Hung Kings
+     * among them), the fixed Vietnamese observances no feed carries (Teachers' Day, Women's Day), and
+     * the next full moon, which the lunar calendar itself defines as its 15th day. Until the first
+     * feed lands, the built-in rules in {@link LunarCalendar} stand in, so the card is never empty.
+     */
+    private List<ShownEvent> calendarEvents(LocalDate today) {
+        List<ShownEvent> events = new ArrayList<>();
+        if (feedEvents != null) {
+            for (HolidayFeed.Event e : feedEvents) {
+                if (!e.date.isBefore(today)) events.add(new ShownEvent(e.name, e.date, today));
+            }
+        }
+        if (events.isEmpty()) {
+            for (LunarCalendar.Upcoming u : LunarCalendar.upcoming(today)) {
+                events.add(new ShownEvent(activity.getString(holidayName(u.holiday)), u.date, today));
+            }
+        } else {
+            addObservance(events, today, 20, 11, R.string.holiday_teachers);
+            addObservance(events, today, 20, 10, R.string.holiday_womens_day);
+        }
+        LunarCalendar.Upcoming moon = LunarCalendar.nextFullMoon(today);
+        if (moon != null) events.add(new ShownEvent(
+                activity.getString(R.string.holiday_full_moon, moon.fullMoonMonth), moon.date, today));
+        events.sort((a, b) -> a.date.compareTo(b.date));
+        if (tetOnly()) {
+            events.removeIf(e -> !isTet(e.name));
+            if (events.isEmpty()) {
+                LocalDate tet = LunarCalendar.Holiday.TET.onOrAfter(today);
+                if (tet != null) events.add(new ShownEvent(
+                        activity.getString(holidayName(LunarCalendar.Holiday.TET)), tet, today));
+            }
+        }
+        return events.size() > eventRows.length ? events.subList(0, eventRows.length) : events;
+    }
+
+    /** A fixed-date observance's next occurrence: this year's, or next year's once it has passed. */
+    private void addObservance(List<ShownEvent> events, LocalDate today, int day, int month, int name) {
+        LocalDate date = LocalDate.of(today.getYear(), month, day);
+        if (date.isBefore(today)) date = date.plusYears(1);
+        events.add(new ShownEvent(activity.getString(name), date, today));
+    }
+
+    /** Tet in the feed's names: "Tet" itself or a "Tet Nguyen Dan" day, not the eve or a day off. */
+    private static boolean isTet(String name) {
+        return name.equals("Tết") || name.contains("Nguyên Đán");
+    }
+
     private void paintCalendar() {
         LocalDate today = LocalDate.now();
         LunarCalendar.Date l = LunarCalendar.toLunar(today);
         lunarLabel.setText(activity.getString(R.string.lunar_year, LunarCalendar.canChi(l.year)));
-        String date = l.day + "/" + l.month;
-        lunarDate.setText(l.leap ? activity.getString(R.string.lunar_leap, date) : date);
-        List<LunarCalendar.Upcoming> upcoming = LunarCalendar.upcoming(today);
-        if (tetOnly()) upcoming.removeIf(u -> u.holiday != LunarCalendar.Holiday.TET);
-        if (upcoming.isEmpty()) {
-            holiday.setText("");
-            return;
+        lunarDate.setText(String.valueOf(l.day));
+        String month = activity.getString(R.string.lunar_month, l.month);
+        lunarMonth.setText(l.leap ? activity.getString(R.string.lunar_leap, month) : month);
+        List<ShownEvent> events = calendarEvents(today);
+        DateTimeFormatter when = DateTimeFormatter.ofPattern("EEEE, d/M", Locale.getDefault());
+        for (int i = 0; i < eventRows.length; i++) {
+            if (i >= events.size()) {
+                eventRows[i].setVisibility(View.GONE);
+                continue;
+            }
+            eventRows[i].setVisibility(View.VISIBLE);
+            ShownEvent u = events.get(i);
+            eventNames[i].setText(u.name);
+            String day = when.format(u.date);
+            eventWhens[i].setText(day.substring(0, 1).toUpperCase(Locale.getDefault()) + day.substring(1));
+            eventBadges[i].setText(u.days == 0 ? activity.getString(R.string.badge_today)
+                    : u.days == 1 ? activity.getString(R.string.badge_tomorrow)
+                    : activity.getString(R.string.badge_in_days, (int) u.days));
+            boolean near = u.days <= 1;
+            eventBadges[i].setBackgroundTintList(ColorStateList.valueOf(
+                    near ? palette.primaryContainer : palette.surfaceContainerHighest));
+            eventBadges[i].setTextColor(near ? palette.onPrimaryContainer : palette.onSurfaceVariant);
         }
-        LunarCalendar.Upcoming u = upcoming.get(Math.floorMod(holidayStep, upcoming.size()));
-        String name = activity.getString(holidayName(u.holiday));
-        holiday.setText(u.days == 0 ? activity.getString(R.string.holiday_today, name)
-                : u.days == 1 ? activity.getString(R.string.holiday_tomorrow, name)
-                : activity.getString(R.string.holiday_in_days, name, (int) u.days));
     }
 
     private static int holidayName(LunarCalendar.Holiday h) {
@@ -1007,7 +1232,74 @@ final class WidgetShelf {
             case LABOUR: return R.string.holiday_labour;
             case MID_AUTUMN: return R.string.holiday_mid_autumn;
             case NATIONAL_DAY: return R.string.holiday_national_day;
+            case TEACHERS: return R.string.holiday_teachers;
             default: return R.string.holiday_christmas;
         }
+    }
+
+    // ---- prices ----------------------------------------------------------------------------------
+
+    private void refreshPrices(boolean force) {
+        if (prices == null) prices = Prices.cached(activity);
+        paintPrices();
+        long now = System.currentTimeMillis();
+        if (pricesFetching) return;
+        if (!force && prices != null && !prices.stale(now)) return;
+        if (!force && now - pricesFailure < WEATHER_RETRY_MS) return;
+        pricesFetching = true;
+        Context app = activity.getApplicationContext();
+        new Thread(() -> {
+            Prices.Report fresh = Prices.fetch(app);
+            main.post(() -> {
+                pricesFetching = false;
+                prices = fresh;
+                if (fresh.empty()) pricesFailure = System.currentTimeMillis();
+                paintPrices();
+            });
+        }, "prices").start();
+    }
+
+    private void paintPrices() {
+        if (prices == null || prices.empty()) {
+            pricesUpdated.setText(pricesFailure > 0 ? activity.getString(R.string.prices_offline) : "");
+            pricesBarBuy.setText("–");
+            pricesBarSell.setText("–");
+            pricesRingBuy.setText("–");
+            pricesRingSell.setText("–");
+            pricesRon95.setText("–");
+            pricesE5.setText("–");
+            pricesDiesel.setText("–");
+            pricesUsd.setText("–");
+            return;
+        }
+        String time = DateTimeFormatter.ofPattern("HH:mm").format(LocalDateTime.ofInstant(
+                java.time.Instant.ofEpochMilli(prices.fetchedAt), ZoneId.systemDefault()));
+        pricesUpdated.setText(activity.getString(R.string.prices_updated, time));
+        pricesBarBuy.setText(millions(prices.barBuy));
+        pricesBarSell.setText(millions(prices.barSell));
+        pricesRingBuy.setText(millions(prices.ringBuy));
+        pricesRingSell.setText(millions(prices.ringSell));
+        pricesRon95.setText(grouped(prices.ron95));
+        pricesE5.setText(grouped(prices.e5));
+        pricesDiesel.setText(grouped(prices.diesel));
+        pricesUsd.setText(grouped(prices.usd));
+    }
+
+    /** Gold in millions of VND with one decimal, in the locale's decimal separator (139,0). */
+    private static String millions(long vnd) {
+        if (vnd == 0) return "–";
+        return String.format(Locale.getDefault(), "%.1f", vnd / 1_000_000.0);
+    }
+
+    /** A VND figure grouped by thousands with dots (24.910), as prices are written in Vietnam. */
+    private static String grouped(int vnd) {
+        if (vnd < 0) return "–";
+        String digits = String.valueOf(vnd);
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < digits.length(); i++) {
+            if (i > 0 && (digits.length() - i) % 3 == 0) out.append('.');
+            out.append(digits.charAt(i));
+        }
+        return out.toString();
     }
 }
