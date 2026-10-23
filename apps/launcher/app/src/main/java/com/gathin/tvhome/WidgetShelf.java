@@ -66,6 +66,8 @@ final class WidgetShelf {
     static final String PREF_KEY = "widgets";
     /** The widgets on the shelf, left to right, comma separated. */
     static final String ORDER_KEY = "widget_order";
+    /** Shown until the owner picks their own: the weather, the calendar and the prices. */
+    static final String DEFAULT_ORDER = WEATHER + "," + CALENDAR + "," + PRICES;
     static final String WEATHER = "weather", SYSTEM = "system", AIR = "air", CALENDAR = "calendar",
             PRICES = "prices";
     private static final String[] ALL = {WEATHER, SYSTEM, AIR, CALENDAR, PRICES};
@@ -389,7 +391,7 @@ final class WidgetShelf {
     /** The saved list: the widgets shown, left to right. */
     private List<String> savedOrder() {
         List<String> saved = new ArrayList<>();
-        String text = prefs.getString(ORDER_KEY, String.join(",", ALL));
+        String text = prefs.getString(ORDER_KEY, DEFAULT_ORDER);
         for (String id : text.split(",")) {
             id = id.trim();
             if (id.equals("now_playing")) id = AIR;   // the widget air quality replaced, in its place

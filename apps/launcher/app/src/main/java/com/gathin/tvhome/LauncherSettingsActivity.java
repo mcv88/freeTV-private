@@ -204,7 +204,7 @@ public final class LauncherSettingsActivity extends Activity {
     /** The widgets on the shelf, left to right; every one until the owner changes the list. */
     private java.util.List<String> shownWidgets() {
         java.util.List<String> shown = new java.util.ArrayList<>();
-        String saved = choices.getString(WidgetShelf.ORDER_KEY, String.join(",", WIDGET_IDS));
+        String saved = choices.getString(WidgetShelf.ORDER_KEY, WidgetShelf.DEFAULT_ORDER);
         for (String id : saved.split(",")) {
             id = id.trim();
             for (String known : WIDGET_IDS) if (known.equals(id) && !shown.contains(id)) shown.add(id);
