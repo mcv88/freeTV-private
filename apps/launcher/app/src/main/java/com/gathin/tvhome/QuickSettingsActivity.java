@@ -28,8 +28,6 @@ public final class QuickSettingsActivity extends Activity {
         findViewById(R.id.scrim).setOnClickListener(v -> finish());
         LinearLayout rows = findViewById(R.id.rows);
         addRow(rows, R.drawable.ic_settings, R.string.tv_settings, 0, TvSettings.main(this));
-        addRow(rows, R.drawable.ic_timer, R.string.quick_sleep_timer,
-                R.string.quick_sleep_timer_hint, TvSettings.main(this));
         addRow(rows, R.drawable.ic_picture, R.string.quick_picture, 0, TvSettings.picture(this));
         addRow(rows, R.drawable.ic_sound, R.string.quick_sound, 0, TvSettings.sound(this));
         addRow(rows, R.drawable.ic_home_settings, R.string.launcher_settings, 0,

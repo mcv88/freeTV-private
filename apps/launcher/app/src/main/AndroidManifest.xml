@@ -150,6 +150,9 @@
                 android:resource="@xml/input_key_service" />
         </service>
         <receiver
+            android:name=".SleepTimerReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".InstallStatusReceiver"
             android:exported="false" />
     </application>

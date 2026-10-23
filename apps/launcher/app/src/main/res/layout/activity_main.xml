@@ -230,6 +230,13 @@
                 android:nextFocusDown="@+id/grid" />
 
             <TextView
+                android:id="@+id/btnSleepTimer"
+                style="@style/TopButtonIcon"
+                android:contentDescription="@string/quick_sleep_timer"
+                android:drawableStart="@drawable/ic_timer"
+                android:nextFocusDown="@+id/grid" />
+
+            <TextView
                 android:id="@+id/btnWifi"
                 style="@style/TopButton"
                 android:maxWidth="180dp"

@@ -38,6 +38,19 @@
     <string name="quick_picture">Hiển thị</string>
     <string name="quick_sleep_timer_hint">Tìm mục này trong cài đặt TV</string>
     <string name="quick_sleep_timer">Hẹn giờ tắt</string>
+
+    <string name="sleep_timer_title">Hẹn giờ tắt TV</string>
+    <string name="sleep_timer_15">15 phút</string>
+    <string name="sleep_timer_30">30 phút</string>
+    <string name="sleep_timer_60">60 phút</string>
+    <string name="sleep_timer_90">90 phút</string>
+    <string name="sleep_timer_remaining">Thời gian còn lại: %1$d:%2$02d</string>
+    <string name="sleep_timer_cancel_timer">Hủy hẹn giờ</string>
+    <string name="sleep_timer_started">TV sẽ tắt màn hình sau %1$d phút</string>
+    <string name="sleep_timer_cancelled">Đã hủy hẹn giờ tắt TV</string>
+    <string name="sleep_timer_adb_off">ADB nội bộ không khả dụng. Hãy bật ADB qua mạng.</string>
+    <string name="sleep_timer_adb_not_allowed">Hãy cho phép khóa ADB của launcher trên TV rồi thử lại.</string>
+    <string name="sleep_timer_failed">Không thể đưa TV vào chế độ ngủ.</string>
     <string name="quick_sound">Âm thanh</string>
     <string name="quick_network">Mạng</string>
     <string name="quick_apps">Ứng dụng</string>
@@ -245,7 +258,6 @@
     <string name="screensaver_style_large">Đồng hồ lớn</string>
     <string name="menu_inputs">Nút Menu mở Inputs</string>
     <string name="menu_inputs_desc">Nút ba gạch hiện danh sách HDMI và các nguồn vào, ở mọi app</string>
-    <string name="about_author">Tác giả</string>
     <string name="about_email">Email</string>
     <string name="about_source">Mã nguồn</string>
     <string name="setting_opens">Trang mở đầu</string>

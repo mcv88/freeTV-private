@@ -41,6 +41,19 @@
     <string name="quick_picture">Display</string>
     <string name="quick_sleep_timer_hint">Find this option in TV settings</string>
     <string name="quick_sleep_timer">Sleep timer</string>
+
+    <string name="sleep_timer_title">Sleep timer</string>
+    <string name="sleep_timer_15">15 minutes</string>
+    <string name="sleep_timer_30">30 minutes</string>
+    <string name="sleep_timer_60">60 minutes</string>
+    <string name="sleep_timer_90">90 minutes</string>
+    <string name="sleep_timer_remaining">Time remaining: %1$d:%2$02d</string>
+    <string name="sleep_timer_cancel_timer">Cancel timer</string>
+    <string name="sleep_timer_started">TV will sleep in %1$d minutes</string>
+    <string name="sleep_timer_cancelled">Sleep timer cancelled</string>
+    <string name="sleep_timer_adb_off">Local ADB is unavailable. Enable ADB over network.</string>
+    <string name="sleep_timer_adb_not_allowed">Allow the launcher ADB key on the TV, then try again.</string>
+    <string name="sleep_timer_failed">Could not put the TV to sleep.</string>
     <string name="quick_sound">Sound</string>
     <string name="quick_network">Network</string>
     <string name="quick_apps">Apps</string>
@@ -268,10 +281,8 @@
     <string name="screensaver_style_large">Large clock</string>
     <string name="menu_inputs">Menu button opens Inputs</string>
     <string name="menu_inputs_desc">The three-line button lists HDMI and the other inputs, in any app</string>
-    <string name="about_author">Author</string>
     <string name="about_email">Email</string>
     <string name="about_source">Source</string>
-    <string name="about_author_name" translatable="false">Kien Mai Trung</string>
     <string name="about_email_value" translatable="false">kien.mai.trung.98@gmail.com</string>
     <string name="about_source_value" translatable="false">github.com/kienmai160598/freeTV</string>
     <string name="setting_opens">Opens on</string>

@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -140,6 +141,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean advancedEffects;
     private TextView greeting;
     private View btnInputs;
+    private TextView btnSleepTimer;
     private PopupWindow inputsPopup;
     private TextView btnWifi;
     private TextView shamsiDate;
@@ -555,8 +557,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
 
         btnInputs = findViewById(R.id.btnInputs);
+        btnSleepTimer = findViewById(R.id.btnSleepTimer);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
+        btnSleepTimer.setOnClickListener(v -> showSleepTimerDialog());
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnWifi.setOnLongClickListener(v -> {
             showWifiMenu();
@@ -584,19 +588,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 focusTile(lastFocused % COLUMNS);
                 return true;
             }
-            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : R.id.btnWifi;
+            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : R.id.btnSleepTimer;
             int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
             int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
         btnInputs.setOnKeyListener(pillKeys);
+        btnSleepTimer.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         // The header buttons form an M3E connected button group: icon-only segments that grow into labelled pills
         // on focus. Which are visible changes (Inputs appears at boot), so the shapes are set again on layout.
-        headerButtons = new View[]{btnInputs, btnWifi, btnReorder, btnSettings};
+        headerButtons = new View[]{btnInputs, btnSleepTimer, btnWifi, btnReorder, btnSettings};
         for (View button : headerButtons) {
             LabelReveal reveal = new LabelReveal((TextView) button, animations, reducedMotion);
             reveals.add(reveal);
@@ -2305,6 +2310,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
+
+    private void showSleepTimerDialog() {
+        long remaining = SleepTimer.remainingMillis(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle(R.string.sleep_timer_title)
+                .setItems(new CharSequence[]{
+                        getString(R.string.sleep_timer_15),
+                        getString(R.string.sleep_timer_30),
+                        getString(R.string.sleep_timer_60),
+                        getString(R.string.sleep_timer_90)
+                }, (dialog, which) -> {
+                    int[] minutes = {15, 30, 60, 90};
+                    SleepTimer.start(this, minutes[which]);
+                    Toast.makeText(this,
+                            getString(R.string.sleep_timer_started, minutes[which]),
+                            Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(android.R.string.cancel, null);
+
+        if (remaining > 0) {
+            long seconds = (remaining + 999L) / 1000L;
+            builder.setMessage(getString(
+                            R.string.sleep_timer_remaining, seconds / 60L, seconds % 60L))
+                    .setPositiveButton(R.string.sleep_timer_cancel_timer, (d, which) -> {
+                        SleepTimer.cancel(this);
+                        Toast.makeText(this, R.string.sleep_timer_cancelled,
+                                Toast.LENGTH_SHORT).show();
+                    });
+        }
+        builder.show();
+    }
+
     private void showInputs() {
         // The Menu button again (InputKeyService) closes it instead of stacking another.
         if (inputsPopup != null && inputsPopup.isShowing()) {
