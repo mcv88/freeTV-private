@@ -69,6 +69,11 @@
                 <LinearLayout style="@style/SettingsSheetGroup">
                     <TextView android:id="@+id/columnsChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetsChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetToggleWeather" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetToggleSystem" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetToggleAir" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetToggleCalendar" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetTogglePrices" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/menuInputsChoice" style="@style/SettingsListItem" />
                 </LinearLayout>
 

@@ -138,7 +138,9 @@ public final class LauncherSettingsActivity extends Activity {
             boolean on = !choices.getBoolean(WidgetShelf.PREF_KEY, widgetsDefault);
             choices.edit().putBoolean(WidgetShelf.PREF_KEY, on).apply();
             widgetsSwitch.setChecked(on);
+            refreshWidgetRows();
         });
+        showWidgetToggles(density);
         tvSettingsChoice.setOnClickListener(v -> open(TvSettings.main(this)));
         showMenuInputs(config, density);
         showLook(config);
@@ -161,6 +163,64 @@ public final class LauncherSettingsActivity extends Activity {
         settingsScroll.setMotion(config.animations, config.reducedMotion);
         sideSheet.slideIn((ViewGroup) settingsScroll.getChildAt(0));
         columnsChoice.requestFocus();
+    }
+
+    /** The widgets the owner can show or hide one by one, in shelf order, with their settings rows. */
+    private static final String[] WIDGET_IDS = {WidgetShelf.WEATHER, WidgetShelf.SYSTEM,
+            WidgetShelf.AIR, WidgetShelf.CALENDAR, WidgetShelf.PRICES};
+    private static final int[] WIDGET_ROWS = {R.id.widgetToggleWeather, R.id.widgetToggleSystem,
+            R.id.widgetToggleAir, R.id.widgetToggleCalendar, R.id.widgetTogglePrices};
+    private static final int[] WIDGET_NAMES = {R.string.weather, R.string.widget_system,
+            R.string.air_quality, R.string.lunar_calendar, R.string.prices};
+    private static final int[] WIDGET_ICONS = {R.drawable.ic_w_partly_day, R.drawable.ic_memory,
+            R.drawable.ic_air, R.drawable.ic_calendar, R.drawable.ic_speed};
+    private final TextView[] widgetRows = new TextView[WIDGET_IDS.length];
+    private final M3Switch[] widgetSwitches = new M3Switch[WIDGET_IDS.length];
+
+    /**
+     * One switch per widget under the master one: the same list Home's shelf keeps (ORDER_KEY),
+     * so hiding a widget here is its Remove on the shelf, and showing one its Add.
+     */
+    private void showWidgetToggles(float density) {
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            String id = WIDGET_IDS[i];
+            TextView row = findViewById(WIDGET_ROWS[i]);
+            widgetRows[i] = row;
+            row.setText(getString(WIDGET_NAMES[i]));
+            M3Switch toggle = new M3Switch(density, palette, animations);
+            widgetSwitches[i] = toggle;
+            row.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    icon(WIDGET_ICONS[i]), null, toggle, null);
+            row.setOnClickListener(v -> {
+                java.util.List<String> shown = shownWidgets();
+                if (shown.contains(id)) shown.remove(id); else shown.add(id);
+                choices.edit().putString(WidgetShelf.ORDER_KEY, String.join(",", shown)).apply();
+                refreshWidgetRows();
+            });
+        }
+        refreshWidgetRows();
+    }
+
+    /** The widgets on the shelf, left to right; every one until the owner changes the list. */
+    private java.util.List<String> shownWidgets() {
+        java.util.List<String> shown = new java.util.ArrayList<>();
+        String saved = choices.getString(WidgetShelf.ORDER_KEY, String.join(",", WIDGET_IDS));
+        for (String id : saved.split(",")) {
+            id = id.trim();
+            for (String known : WIDGET_IDS) if (known.equals(id) && !shown.contains(id)) shown.add(id);
+        }
+        return shown;
+    }
+
+    private void refreshWidgetRows() {
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        java.util.List<String> shown = shownWidgets();
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            widgetSwitches[i].setChecked(shown.contains(WIDGET_IDS[i]));
+            widgetRows[i].setEnabled(master);
+            widgetRows[i].setAlpha(master ? 1f : 0.38f);
+        }
     }
 
     private boolean confirmKeyPressedHere;
