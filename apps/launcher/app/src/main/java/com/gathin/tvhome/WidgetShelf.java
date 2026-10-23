@@ -66,10 +66,10 @@ final class WidgetShelf {
     static final String PREF_KEY = "widgets";
     /** The widgets on the shelf, left to right, comma separated. */
     static final String ORDER_KEY = "widget_order";
-    /** Shown until the owner picks their own: the weather, the calendar and the prices. */
-    static final String DEFAULT_ORDER = WEATHER + "," + CALENDAR + "," + PRICES;
     static final String WEATHER = "weather", SYSTEM = "system", AIR = "air", CALENDAR = "calendar",
             PRICES = "prices";
+    /** Shown until the owner picks their own: the weather, the calendar and the prices. */
+    static final String DEFAULT_ORDER = WEATHER + "," + CALENDAR + "," + PRICES;
     private static final String[] ALL = {WEATHER, SYSTEM, AIR, CALENDAR, PRICES};
 
     /** What the shelf needs from Home: its menus, the storage page, and a say when the cards change. */
