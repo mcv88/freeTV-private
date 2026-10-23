@@ -111,6 +111,10 @@
     <string name="widget_tap">Tapping a card</string>
     <string name="widget_tap_detail">Open the details popup</string>
     <string name="widget_tap_classic">As before — flip pages</string>
+    <string name="popup_blur">Popup background</string>
+    <string name="popup_blur_all">Blur the whole home screen</string>
+    <string name="popup_blur_dim">Dim only, no blur</string>
+    <string name="popup_blur_off">Nothing</string>
     <string name="reset_settings">Reset settings</string>
     <string name="reset_settings_desc">Back to the defaults</string>
     <string name="reset_settings_message">Columns, widgets, the app opened when the TV turns on, the name and the look — everything returns to its default.</string>
@@ -191,7 +195,7 @@
     <!-- Air quality widget -->
     <string name="air_quality">Air quality</string>
     <string name="air_tomorrow">%s tomorrow</string>
-    <string name="air_detail">%1$s, PM2.5 %2$d</string>
+    <string name="air_detail">%1$s, PM2.5 %2$d µg/m³</string>
     <string name="air_detail_tomorrow">%s at its worst</string>
     <string name="air_offline">Can\'t reach the air quality service</string>
 

@@ -71,6 +71,7 @@
                     <TextView android:id="@+id/widgetsChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetLayoutChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetTapChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/popupBlurChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetToggleWeather" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetHeightWeather" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetWidthWeather" style="@style/SettingsListItem" />

@@ -58,6 +58,7 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView widgetsChoice;
     private TextView widgetLayoutChoice;
     private TextView widgetTapChoice;
+    private TextView popupBlurChoice;
     private final TextView[] widgetHeightRows = new TextView[WIDGET_IDS.length];
     private final TextView[] widgetWidthRows = new TextView[WIDGET_IDS.length];
     private TextView tvSettingsChoice;
@@ -241,6 +242,7 @@ public final class LauncherSettingsActivity extends Activity {
         }
         if (widgetLayoutChoice != null) refreshWidgetLayoutRows();
         if (widgetTapChoice != null) refreshWidgetTapRow();
+        if (popupBlurChoice != null) refreshPopupBlurRow();
         if (widgetHeightRows[0] != null) refreshWidgetHeightRows();
         if (widgetWidthRows[0] != null) refreshWidgetWidthRows();
     }
@@ -259,6 +261,11 @@ public final class LauncherSettingsActivity extends Activity {
                 icon(R.drawable.ic_open_in_new), null, null, null);
         widgetTapChoice.setOnClickListener(v -> chooseWidgetTap(config));
         refreshWidgetTapRow();
+        popupBlurChoice = findViewById(R.id.popupBlurChoice);
+        popupBlurChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_contrast), null, null, null);
+        popupBlurChoice.setOnClickListener(v -> choosePopupBlur(config));
+        refreshPopupBlurRow();
     }
 
     private static final int[] HEIGHT_ROWS = {R.id.widgetHeightWeather, R.id.widgetHeightSystem,
@@ -325,6 +332,40 @@ public final class LauncherSettingsActivity extends Activity {
                 getResources().getBoolean(R.bool.widgets));
         widgetTapChoice.setEnabled(master);
         widgetTapChoice.setAlpha(master ? 1f : 0.38f);
+    }
+
+    private static final String[] POPUP_BLUR_VALUES = {MainActivity.POPUP_BLUR_ALL,
+            MainActivity.POPUP_BLUR_DIM, MainActivity.POPUP_BLUR_OFF};
+    private static final int[] POPUP_BLUR_LABELS = {R.string.popup_blur_all,
+            R.string.popup_blur_dim, R.string.popup_blur_off};
+
+    private void choosePopupBlur(Config config) {
+        CharSequence[] labels = new CharSequence[POPUP_BLUR_LABELS.length];
+        for (int i = 0; i < labels.length; i++) labels[i] = getString(POPUP_BLUR_LABELS[i]);
+        int selected = popupBlurIndex();
+        chooseOne(R.string.popup_blur, labels, null, selected, index -> {
+            choices.edit().putString(MainActivity.POPUP_BLUR_KEY,
+                    POPUP_BLUR_VALUES[index]).apply();
+            setResult(RESULT_OK);
+            refreshPopupBlurRow();
+        }, config);
+    }
+
+    private int popupBlurIndex() {
+        String mode = choices.getString(MainActivity.POPUP_BLUR_KEY, MainActivity.POPUP_BLUR_ALL);
+        for (int i = 0; i < POPUP_BLUR_VALUES.length; i++) {
+            if (POPUP_BLUR_VALUES[i].equals(mode)) return i;
+        }
+        return 0;
+    }
+
+    private void refreshPopupBlurRow() {
+        popupBlurChoice.setText(item(getString(R.string.popup_blur),
+                getString(POPUP_BLUR_LABELS[popupBlurIndex()])));
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        popupBlurChoice.setEnabled(master);
+        popupBlurChoice.setAlpha(master ? 1f : 0.38f);
     }
 
     private static final int[] WIDTH_ROWS = {R.id.widgetWidthWeather, R.id.widgetWidthSystem,

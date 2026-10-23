@@ -99,6 +99,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
     private static final String COLUMNS_SETTING = "columns";
+    /** How the detail popup covers Home (Launcher settings): blur it all, dim only, or nothing. */
+    static final String POPUP_BLUR_KEY = "popup_blur";
+    static final String POPUP_BLUR_ALL = "all";
+    static final String POPUP_BLUR_DIM = "dim";
+    static final String POPUP_BLUR_OFF = "off";
     private SharedPreferences settingsPreferences;
     private Config homeConfig;
     private final SharedPreferences.OnSharedPreferenceChangeListener liveSettings = (preferences, key) -> {
@@ -196,6 +201,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean rebuildOnResume = true;
     /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
     private PopupWindow openPopup;
+    private View detailScrim;
     /** Reorder mode is on (top-bar button). */
     private boolean reordering;
     /** Key of the tile being carried in reorder mode, or null. */
@@ -1474,6 +1480,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             @Override
             public void showDetail(View anchor, View panel) {
                 PopupWindow popup = glassPopup(panel, (int) (560 * density));
+                coverBehind(popup);
                 skin(panel);
                 panel.measure(View.MeasureSpec.makeMeasureSpec((int) (560 * density),
                                 View.MeasureSpec.EXACTLY),
@@ -1488,6 +1495,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             grid.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
         });
         if (shownPalette != null) widgets.setPalette(shownPalette);
+    }
+
+    private void coverBehind(PopupWindow popup) {
+        clearCover();
+        String mode = settingsPreferences.getString(POPUP_BLUR_KEY, POPUP_BLUR_ALL);
+        if (!POPUP_BLUR_OFF.equals(mode)) {
+            detailScrim = new View(this);
+            detailScrim.setBackgroundColor(Color.argb(110, 0, 0, 0));
+            root.addView(detailScrim, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            if (POPUP_BLUR_ALL.equals(mode)) setBlur(root, 14 * density);
+        }
+        popup.setOnDismissListener(() -> {
+            if (openPopup == popup) openPopup = null;
+            clearCover();
+        });
+    }
+
+    private void clearCover() {
+        setBlur(root, 0f);
+        if (detailScrim != null) {
+            root.removeView(detailScrim);
+            detailScrim = null;
+        }
     }
 
     /**

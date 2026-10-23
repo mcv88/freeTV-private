@@ -90,6 +90,10 @@
     <string name="widget_tap">Khi bấm vào thẻ</string>
     <string name="widget_tap_detail">Mở popup chi tiết</string>
     <string name="widget_tap_classic">Như cũ — lật trang</string>
+    <string name="popup_blur">Nền phía sau popup</string>
+    <string name="popup_blur_all">Làm mờ toàn bộ màn hình chính</string>
+    <string name="popup_blur_dim">Chỉ tối nền, không làm mờ</string>
+    <string name="popup_blur_off">Không làm gì</string>
     <string name="reset_settings">Khôi phục cài đặt</string>
     <string name="reset_settings_desc">Đưa mọi thứ về mặc định</string>
     <string name="reset_settings_message">Số cột, widget, ứng dụng mở khi bật TV, tên và giao diện — tất cả quay về mặc định.</string>
@@ -170,7 +174,7 @@
     <!-- Air quality widget -->
     <string name="air_quality">Không khí</string>
     <string name="air_tomorrow">%s ngày mai</string>
-    <string name="air_detail">%1$s, PM2.5 %2$d</string>
+    <string name="air_detail">%1$s, PM2.5 %2$d µg/m³</string>
     <string name="air_detail_tomorrow">%s lúc tệ nhất</string>
     <string name="air_offline">Không lấy được chỉ số không khí</string>
 
