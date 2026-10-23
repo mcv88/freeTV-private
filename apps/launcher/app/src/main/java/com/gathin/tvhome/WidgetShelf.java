@@ -902,8 +902,6 @@ final class WidgetShelf {
         palette = p;
         for (WidgetCard c : allCards()) c.setPalette(p);
         highlight.setColor(editing ? p.tertiary : p.primary);
-        addLabel.setTextColor(p.onSurfaceVariant);
-        addIcon.setImageTintList(ColorStateList.valueOf(p.onSurfaceVariant));
         for (TextView t : new TextView[]{weatherPlace, airLabel, lunarLabel, chipRainLabel, chipHumidityLabel,
                 chipAqiLabel, chipUvLabel, pricesTitle, pricesGoldLabel, pricesFuelLabel, pricesBuyLabel,
                 pricesSellLabel, pricesRegionLabel, pricesUpdated}) t.setTextColor(p.onSurfaceVariant);
