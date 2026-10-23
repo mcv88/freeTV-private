@@ -774,16 +774,31 @@ final class WidgetShelf {
         int itemCount = grid.getAdapter() == null ? 0 : grid.getAdapter().getItemCount();
         int lastColumn = Math.max(0, Math.min(columns, itemCount) - 1);
         Rect first = tileBounds(grid, 0);
-        Rect second = lastColumn > 0 ? tileBounds(grid, 1) : null;
-        Rect last = tileBounds(grid, lastColumn);
-        if (first == null || last == null || (lastColumn > 0 && second == null)) return false;
+        if (first == null) return false;
+
+        // Only the first row's own tiles may place the row: while a columns change is still
+        // settling, a holder can still show a tile's old place on the row below, and taking
+        // that tile as the row's end dragged the whole shelf - weather first - off screen.
+        List<Rect> row = new ArrayList<>();
+        row.add(first);
+        for (int i = 1; i <= lastColumn; i++) {
+            Rect tile = tileBounds(grid, i);
+            if (tile != null && Math.abs(tile.top - first.top) <= 2) row.add(tile);
+        }
+        if (lastColumn > 0 && row.size() < 2) return false;
 
         int tileWidth = first.width();
-        int pitch = second != null ? Math.abs(second.left - first.left)
-                : (grid.getWidth() - grid.getPaddingLeft() - grid.getPaddingRight()) / Math.max(1, columns);
-        int tilesLeft = Math.min(first.left, last.left);
-        int centre = (tilesLeft + Math.max(first.right, last.right)) / 2;
-        rowWidth = (columns - 1) * pitch + tileWidth;
+        int pitch = row.size() > 1 ? Math.abs(row.get(1).left - first.left)
+                : (grid.getWidth() - grid.getPaddingLeft() - grid.getPaddingRight())
+                        / Math.max(1, columns);
+        int tilesLeft = first.left, tilesRight = first.right;
+        for (Rect tile : row) {
+            tilesLeft = Math.min(tilesLeft, tile.left);
+            tilesRight = Math.max(tilesRight, tile.right);
+        }
+        int centre = (tilesLeft + tilesRight) / 2;
+        rowWidth = row.size() >= columns ? tilesRight - tilesLeft
+                : (columns - 1) * pitch + tileWidth;
         rowLeft = centre - rowWidth / 2;
         cardGap = pitch - tileWidth;
         tilePitch = pitch;
@@ -991,8 +1006,8 @@ final class WidgetShelf {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(px(20), px(18), px(20), px(18));
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(palette != null ? palette.surface : Color.rgb(28, 27, 31));
-        bg.setCornerRadius(px(24));
+        bg.setColor(palette != null ? palette.surfaceContainer : Color.rgb(28, 27, 31));
+        bg.setCornerRadius(px(20));
         box.setBackground(bg);
         switch (id) {
             case WEATHER: buildWeatherDetail(box); break;
@@ -1053,9 +1068,22 @@ final class WidgetShelf {
     }
 
     private void detailRow(LinearLayout box, String label, String value) {
+        detailRow(box, 0, label, value);
+    }
+
+    private void detailRow(LinearLayout box, int iconRes, String label, String value) {
         LinearLayout row = new LinearLayout(activity);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
+        if (iconRes != 0) {
+            ImageView icon = new ImageView(activity);
+            icon.setImageResource(iconRes);
+            int iconSize = px(18);
+            LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(iconSize, iconSize);
+            iconLp.rightMargin = px(8);
+            icon.setLayoutParams(iconLp);
+            row.addView(icon);
+        }
         TextView name = detailText(label, 13, detailVariant(), R.font.sans_regular);
         name.setLayoutParams(new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
@@ -1102,8 +1130,26 @@ final class WidgetShelf {
             return;
         }
         String place = report.place.isEmpty() ? activity.getString(R.string.weather) : report.place;
-        detailBig(box, place + " · " + degrees(report.temp) + "° · "
-                + Weather.label(Weather.sky(report.code)));
+        LinearLayout head = new LinearLayout(activity);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        ImageView headIcon = new ImageView(activity);
+        headIcon.setImageResource(Weather.icon(Weather.sky(report.code), report.day));
+        int headIconSize = px(38);
+        headIcon.setLayoutParams(new LinearLayout.LayoutParams(headIconSize, headIconSize));
+        head.addView(headIcon);
+        TextView headText = detailText(place + " · " + degrees(report.temp) + "° · "
+                + activity.getString(Weather.label(Weather.sky(report.code))),
+                26, detailOn(), R.font.sans_display);
+        LinearLayout.LayoutParams headTextLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        headTextLp.leftMargin = px(10);
+        headText.setLayoutParams(headTextLp);
+        head.addView(headText);
+        LinearLayout.LayoutParams headLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        headLp.topMargin = px(8);
+        box.addView(head, headLp);
         if (report.rainStopsInMinutes > 0) {
             detailAlert(box, activity.getString(
                     R.string.rain_stops_in, report.rainStopsInMinutes), true);
@@ -1112,20 +1158,23 @@ final class WidgetShelf {
         } else {
             detailAlert(box, activity.getString(R.string.rain_none), false);
         }
-        detailRow(box, activity.getString(R.string.weather_feels), degrees(report.feels) + "°");
+        detailRow(box, R.drawable.ic_thermostat, activity.getString(R.string.weather_feels),
+                degrees(report.feels) + "°");
         detailRow(box, activity.getString(R.string.detail_high), degrees(report.high) + "°");
         detailRow(box, activity.getString(R.string.detail_low), degrees(report.low) + "°");
-        detailRow(box, activity.getString(R.string.detail_rain_chance), report.todayRain + "%");
+        detailRow(box, R.drawable.ic_w_rain, activity.getString(R.string.detail_rain_chance),
+                report.todayRain + "%");
         detailRow(box, activity.getString(R.string.chip_humidity), report.humidity + "%");
         detailRow(box, activity.getString(R.string.detail_wind), Math.round(report.wind) + " km/h");
         detailRow(box, activity.getString(R.string.chip_uv), Math.round(report.uv) + " · "
                 + activity.getString(Weather.uvLabel(report.uv)));
         if (air != null) {
-            detailRow(box, activity.getString(R.string.chip_aqi), air.aqi + " · "
-                    + activity.getString(AirQuality.label(AirQuality.level(air.aqi))));
+            detailRow(box, R.drawable.ic_air, activity.getString(R.string.chip_aqi),
+                    air.aqi + " · " + activity.getString(AirQuality.label(AirQuality.level(air.aqi))));
         }
         detailSection(box, activity.getString(R.string.detail_tomorrow));
-        detailRow(box, activity.getString(Weather.label(Weather.sky(report.tomorrowCode))),
+        detailRow(box, Weather.icon(Weather.sky(report.tomorrowCode), true),
+                activity.getString(Weather.label(Weather.sky(report.tomorrowCode))),
                 degrees(report.tomorrowHigh) + "° / " + degrees(report.tomorrowLow) + "° · "
                         + report.tomorrowRain + "%");
         detailSection(box, activity.getString(R.string.detail_forecast));
@@ -1134,9 +1183,10 @@ final class WidgetShelf {
         for (int i = 0; i < report.days.length; i++) {
             Weather.Day day = report.days[i];
             String name = when.format(today.plusDays(i + 1));
-            detailRow(box, name.substring(0, 1).toUpperCase(Locale.getDefault()) + name.substring(1),
-                    Weather.label(Weather.sky(day.code)) + " · " + degrees(day.high) + "° / "
-                            + degrees(day.low) + "°");
+            detailRow(box, Weather.icon(Weather.sky(day.code), true),
+                    name.substring(0, 1).toUpperCase(Locale.getDefault()) + name.substring(1),
+                    activity.getString(Weather.label(Weather.sky(day.code))) + " · "
+                            + degrees(day.high) + "° / " + degrees(day.low) + "°");
         }
         detailNote(box, updatedText(report.fetchedAt));
     }

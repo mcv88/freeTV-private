@@ -90,6 +90,10 @@
     <string name="widget_tap">Khi bấm vào thẻ</string>
     <string name="widget_tap_detail">Mở popup chi tiết</string>
     <string name="widget_tap_classic">Như cũ — lật trang</string>
+    <string name="reset_settings">Khôi phục cài đặt</string>
+    <string name="reset_settings_desc">Đưa mọi thứ về mặc định</string>
+    <string name="reset_settings_message">Số cột, widget, ứng dụng mở khi bật TV, tên và giao diện — tất cả quay về mặc định.</string>
+    <string name="reset_settings_action">Khôi phục</string>
     <string name="widget_layout_stacked">Dọc</string>
     <string name="widget_layout_wide">Ngang</string>
     <string name="widget_card_height">Chiều cao thẻ</string>

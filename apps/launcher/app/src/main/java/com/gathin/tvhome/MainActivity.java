@@ -687,6 +687,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cameBackFromBackground = false;
         Palette.loadDarkMode(this);
         updateWidgets();
+        int wantedColumns = settingsPreferences.getInt(COLUMNS_SETTING, homeConfig.columns);
+        if (wantedColumns != COLUMNS) applyColumns(wantedColumns);
         if (Palette.current() != null && Palette.current() != shownPalette) applyPalette(Palette.current());
         // The shapes start turning once the return transition is over, so they never compete with it.
         if (backdrop != null) handler.postDelayed(startBackdrop, BACKDROP_RESUME_DELAY_MS);

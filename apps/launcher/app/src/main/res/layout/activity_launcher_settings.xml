@@ -120,6 +120,7 @@
                     <TextView android:id="@+id/stockInfo" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/updateChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/rebootChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/resetChoice" style="@style/SettingsListItem" />
                 </LinearLayout>
 
                 <TextView style="@style/SettingsSheetLabel" android:text="@string/settings_group_about" />

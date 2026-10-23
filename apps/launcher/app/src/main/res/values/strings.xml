@@ -111,6 +111,10 @@
     <string name="widget_tap">Tapping a card</string>
     <string name="widget_tap_detail">Open the details popup</string>
     <string name="widget_tap_classic">As before — flip pages</string>
+    <string name="reset_settings">Reset settings</string>
+    <string name="reset_settings_desc">Back to the defaults</string>
+    <string name="reset_settings_message">Columns, widgets, the app opened when the TV turns on, the name and the look — everything returns to its default.</string>
+    <string name="reset_settings_action">Reset</string>
     <string name="widget_layout_stacked">Stacked</string>
     <string name="widget_layout_wide">Wide</string>
     <string name="widget_card_height">Card height</string>

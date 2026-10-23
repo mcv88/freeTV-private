@@ -127,6 +127,12 @@ public final class LauncherSettingsActivity extends Activity {
         rebootChoice.setText(item(getString(R.string.reboot), getString(R.string.reboot_desc)));
         rebootChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_power), null, null, null);
         rebootChoice.setOnClickListener(v -> confirmPower(config));
+        TextView resetChoice = findViewById(R.id.resetChoice);
+        resetChoice.setText(item(getString(R.string.reset_settings),
+                getString(R.string.reset_settings_desc)));
+        resetChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_refresh), null, null, null);
+        resetChoice.setOnClickListener(v -> confirmResetSettings(config));
 
         nameChoice = findViewById(R.id.nameChoice);
         nameChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_person), null, null, null);
@@ -932,6 +938,30 @@ public final class LauncherSettingsActivity extends Activity {
         turnOff.setOnClickListener(v -> {
             dialog.dismiss();
             runPowerCommand(TURN_OFF_COMMAND);
+        });
+        cancel.requestFocus();
+    }
+
+    /** Back to the defaults: the whole settings file goes, and this sheet is rebuilt on them. */
+    private void confirmResetSettings(Config config) {
+        Palette p = Palette.currentOrBaseline();
+        float d = getResources().getDisplayMetrics().density;
+        LinearLayout panel = dialogHeroPanel(R.drawable.ic_refresh, R.string.reset_settings,
+                R.string.reset_settings_message, p, d);
+
+        LinearLayout buttons = dialogButtonRow(panel, d);
+        TextView cancel = dialogButton(android.R.string.cancel, d);
+        TextView reset = dialogButton(R.string.reset_settings_action, d);
+        buttons.addView(cancel);
+        buttons.addView(reset);
+
+        Dialog dialog = showDialog(panel, p, config, d);
+        cancel.setOnClickListener(v -> dialog.dismiss());
+        reset.setOnClickListener(v -> {
+            dialog.dismiss();
+            choices.edit().clear().apply();
+            setResult(RESULT_OK);
+            recreate();
         });
         cancel.requestFocus();
     }
