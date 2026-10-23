@@ -84,6 +84,17 @@
 
     <!-- Home widgets (WidgetShelf) -->
     <string name="widgets">Tiện ích</string>
+    <string name="widget_layout">Bố cục thẻ</string>
+    <string name="widget_layout_stacked">Dọc</string>
+    <string name="widget_layout_wide">Ngang</string>
+    <string name="widget_card_height">Chiều cao thẻ</string>
+    <string name="widget_width">Chiều ngang</string>
+    <string name="widget_width_tiny">Rất hẹp</string>
+    <string name="widget_width_narrow">Hẹp</string>
+    <string name="widget_width_medium">Vừa</string>
+    <string name="widget_width_wide">Rộng</string>
+    <string name="widget_width_widest">Rất rộng</string>
+    <string name="widget_height_value">%1$ddp</string>
     <string name="weather">Thời tiết</string>
     <string name="widget_system">Thiết bị</string>
     <string name="widget_ram">RAM</string>

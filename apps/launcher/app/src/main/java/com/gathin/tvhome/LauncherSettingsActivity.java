@@ -56,6 +56,9 @@ public final class LauncherSettingsActivity extends Activity {
     private M3Switch widgetsSwitch;
     private TextView nameChoice;
     private TextView widgetsChoice;
+    private TextView widgetLayoutChoice;
+    private final TextView[] widgetHeightRows = new TextView[WIDGET_IDS.length];
+    private final TextView[] widgetWidthRows = new TextView[WIDGET_IDS.length];
     private TextView tvSettingsChoice;
     private TextView colorChoice;
     private TextView backdropChoice;
@@ -141,6 +144,9 @@ public final class LauncherSettingsActivity extends Activity {
             refreshWidgetRows();
         });
         showWidgetToggles(density);
+        showWidgetLayout(config);
+        showWidgetHeights(config);
+        showWidgetWidths(config);
         tvSettingsChoice.setOnClickListener(v -> open(TvSettings.main(this)));
         showMenuInputs(config, density);
         showLook(config);
@@ -221,6 +227,139 @@ public final class LauncherSettingsActivity extends Activity {
             widgetRows[i].setEnabled(master);
             widgetRows[i].setAlpha(master ? 1f : 0.38f);
         }
+        if (widgetLayoutChoice != null) refreshWidgetLayoutRows();
+        if (widgetHeightRows[0] != null) refreshWidgetHeightRows();
+        if (widgetWidthRows[0] != null) refreshWidgetWidthRows();
+    }
+
+    private static final int[] HEIGHT_OPTIONS = {176, 192, 200, 208, 224};
+
+    /** The shelf's arrangement and card height; Home applies both when it shows again. */
+    private void showWidgetLayout(Config config) {
+        widgetLayoutChoice = findViewById(R.id.widgetLayoutChoice);
+        widgetLayoutChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_grid_view), null, null, null);
+        widgetLayoutChoice.setOnClickListener(v -> chooseWidgetLayout(config));
+        refreshWidgetLayoutRows();
+    }
+
+    private static final int[] HEIGHT_ROWS = {R.id.widgetHeightWeather, R.id.widgetHeightSystem,
+            R.id.widgetHeightAir, R.id.widgetHeightCalendar, R.id.widgetHeightPrices};
+
+    /** One height row under each widget's switch, so every card's height is its own choice. */
+    private void showWidgetHeights(Config config) {
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            int index = i;
+            TextView row = findViewById(HEIGHT_ROWS[i]);
+            widgetHeightRows[i] = row;
+            row.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    icon(R.drawable.ic_swap_vert), null, null, null);
+            row.setOnClickListener(v -> chooseWidgetHeight(config, index));
+        }
+        refreshWidgetHeightRows();
+    }
+
+    private void refreshWidgetHeightRows() {
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            int height = WidgetShelf.cardHeightDp(choices, WIDGET_IDS[i]);
+            widgetHeightRows[i].setText(item(
+                    getString(WIDGET_NAMES[i]) + " · " + getString(R.string.widget_card_height),
+                    getString(R.string.widget_height_value, height)));
+            widgetHeightRows[i].setEnabled(master);
+            widgetHeightRows[i].setAlpha(master ? 1f : 0.38f);
+        }
+    }
+
+    private void chooseWidgetLayout(Config config) {
+        CharSequence[] labels = {getString(R.string.widget_layout_stacked),
+                getString(R.string.widget_layout_wide)};
+        int selected = WidgetShelf.LAYOUT_WIDE.equals(
+                choices.getString(WidgetShelf.LAYOUT_KEY, WidgetShelf.LAYOUT_STACKED)) ? 1 : 0;
+        chooseOne(R.string.widget_layout, labels, null, selected, index -> {
+            choices.edit().putString(WidgetShelf.LAYOUT_KEY,
+                    index == 1 ? WidgetShelf.LAYOUT_WIDE : WidgetShelf.LAYOUT_STACKED).apply();
+            setResult(RESULT_OK);
+            refreshWidgetLayoutRows();
+        }, config);
+    }
+
+    private static final int[] WIDTH_ROWS = {R.id.widgetWidthWeather, R.id.widgetWidthSystem,
+            R.id.widgetWidthAir, R.id.widgetWidthCalendar, R.id.widgetWidthPrices};
+    private static final int[] WIDTH_LABELS = {R.string.widget_width_tiny, R.string.widget_width_narrow,
+            R.string.widget_width_medium, R.string.widget_width_wide, R.string.widget_width_widest};
+
+    /** One width row under each widget's height row: its share of the shelf's row, by percent. */
+    private void showWidgetWidths(Config config) {
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            int index = i;
+            TextView row = findViewById(WIDTH_ROWS[i]);
+            widgetWidthRows[i] = row;
+            row.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    icon(R.drawable.ic_swap_horiz), null, null, null);
+            row.setOnClickListener(v -> chooseWidgetWidth(config, index));
+        }
+        refreshWidgetWidthRows();
+    }
+
+    private void refreshWidgetWidthRows() {
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            int percent = WidgetShelf.cardWidthPercent(choices, WIDGET_IDS[i]);
+            widgetWidthRows[i].setText(item(
+                    getString(WIDGET_NAMES[i]) + " · " + getString(R.string.widget_width),
+                    getString(WIDTH_LABELS[widthOption(percent)])));
+            widgetWidthRows[i].setEnabled(master);
+            widgetWidthRows[i].setAlpha(master ? 1f : 0.38f);
+        }
+    }
+
+    private static int widthOption(int percent) {
+        for (int i = 0; i < WidgetShelf.WIDTH_OPTIONS.length; i++) {
+            if (WidgetShelf.WIDTH_OPTIONS[i] == percent) return i;
+        }
+        return 2;
+    }
+
+    private void chooseWidgetWidth(Config config, int widget) {
+        CharSequence[] labels = new CharSequence[WidgetShelf.WIDTH_OPTIONS.length];
+        for (int i = 0; i < labels.length; i++) labels[i] = getString(WIDTH_LABELS[i]);
+        int selected = widthOption(WidgetShelf.cardWidthPercent(choices, WIDGET_IDS[widget]));
+        chooseOne(WIDGET_NAMES[widget], labels, null, selected, index -> {
+            choices.edit().putInt(WidgetShelf.WIDTH_KEY_PREFIX + WIDGET_IDS[widget],
+                    WidgetShelf.WIDTH_OPTIONS[index]).apply();
+            setResult(RESULT_OK);
+            refreshWidgetWidthRows();
+        }, config);
+    }
+
+    private void chooseWidgetHeight(Config config, int widget) {
+        CharSequence[] labels = new CharSequence[HEIGHT_OPTIONS.length];
+        int current = WidgetShelf.cardHeightDp(choices, WIDGET_IDS[widget]);
+        int selected = 0;
+        for (int i = 0; i < HEIGHT_OPTIONS.length; i++) {
+            labels[i] = getString(R.string.widget_height_value, HEIGHT_OPTIONS[i]);
+            if (HEIGHT_OPTIONS[i] == current) selected = i;
+        }
+        chooseOne(WIDGET_NAMES[widget], labels, null, selected, index -> {
+            choices.edit().putInt(WidgetShelf.HEIGHT_KEY_PREFIX + WIDGET_IDS[widget],
+                    HEIGHT_OPTIONS[index]).apply();
+            setResult(RESULT_OK);
+            refreshWidgetHeightRows();
+        }, config);
+    }
+
+    private void refreshWidgetLayoutRows() {
+        boolean wide = WidgetShelf.LAYOUT_WIDE.equals(
+                choices.getString(WidgetShelf.LAYOUT_KEY, WidgetShelf.LAYOUT_STACKED));
+        widgetLayoutChoice.setText(item(getString(R.string.widget_layout),
+                getString(wide ? R.string.widget_layout_wide : R.string.widget_layout_stacked)));
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        widgetLayoutChoice.setEnabled(master);
+        widgetLayoutChoice.setAlpha(master ? 1f : 0.38f);
     }
 
     private boolean confirmKeyPressedHere;

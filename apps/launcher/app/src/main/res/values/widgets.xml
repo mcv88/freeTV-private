@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- A widget card's height, plus 4dp on each side for the focus indicator. -->
-    <dimen name="widget_card_height">184dp</dimen>
+    <dimen name="widget_card_height">200dp</dimen>
     <!-- The shelf: the cards plus 4dp more above and below, for the indicator lifted (8dp) in Edit Home. -->
-    <dimen name="widget_shelf_height">192dp</dimen>
+    <dimen name="widget_shelf_height">208dp</dimen>
 
     <style name="WidgetLabel">
         <item name="android:layout_width">match_parent</item>

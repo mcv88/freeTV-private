@@ -105,6 +105,17 @@
 
     <!-- Home widgets (WidgetShelf) -->
     <string name="widgets">Widgets</string>
+    <string name="widget_layout">Card layout</string>
+    <string name="widget_layout_stacked">Stacked</string>
+    <string name="widget_layout_wide">Wide</string>
+    <string name="widget_card_height">Card height</string>
+    <string name="widget_width">Width</string>
+    <string name="widget_width_tiny">Very narrow</string>
+    <string name="widget_width_narrow">Narrow</string>
+    <string name="widget_width_medium">Medium</string>
+    <string name="widget_width_wide">Wide</string>
+    <string name="widget_width_widest">Very wide</string>
+    <string name="widget_height_value">%1$ddp</string>
     <string name="weather">Weather</string>
     <string name="widget_system">This TV</string>
     <string name="widget_ram">Memory</string>

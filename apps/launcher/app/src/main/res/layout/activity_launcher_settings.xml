@@ -69,11 +69,22 @@
                 <LinearLayout style="@style/SettingsSheetGroup">
                     <TextView android:id="@+id/columnsChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetsChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetLayoutChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetToggleWeather" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetHeightWeather" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetWidthWeather" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetToggleSystem" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetHeightSystem" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetWidthSystem" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetToggleAir" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetHeightAir" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetWidthAir" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetToggleCalendar" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetHeightCalendar" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetWidthCalendar" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetTogglePrices" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetHeightPrices" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetWidthPrices" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/menuInputsChoice" style="@style/SettingsListItem" />
                 </LinearLayout>
 

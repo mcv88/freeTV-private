@@ -70,6 +70,14 @@ final class WidgetShelf {
             PRICES = "prices";
     /** Shown until the owner picks their own: the weather, the calendar and the prices. */
     static final String DEFAULT_ORDER = WEATHER + "," + CALENDAR + "," + PRICES;
+    static final String LAYOUT_KEY = "widget_layout";
+    static final String LAYOUT_STACKED = "stacked";
+    static final String LAYOUT_WIDE = "wide";
+    static final String HEIGHT_KEY_PREFIX = "widget_height_";
+    static final String WIDTH_KEY_PREFIX = "widget_width_";
+    static final int[] WIDTH_OPTIONS = {70, 85, 100, 120, 140};
+    static final int DEFAULT_WIDTH_PERCENT = 100;
+    static final int DEFAULT_HEIGHT_DP = 200;
     private static final String[] ALL = {WEATHER, SYSTEM, AIR, CALENDAR, PRICES};
 
     /** What the shelf needs from Home: its menus, the storage page, and a say when the cards change. */
@@ -306,6 +314,7 @@ final class WidgetShelf {
             TextFit.attachRow(rowNames[i], rowValues[i], (View) rowNames[i].getParent());
         }
         loadOrder();
+        applyCardHeight();
 
 
         for (WidgetCard card : allCards()) {
@@ -404,6 +413,49 @@ final class WidgetShelf {
     void refreshOrder() {
         List<String> saved = savedOrder();
         if (!saved.equals(order)) applyOrder(saved, null, 0, false);
+        applyCardHeight();
+    }
+
+    /** The arrangement the owner picked in settings: the stacked one until they choose wide. */
+    static String layoutMode(SharedPreferences prefs) {
+        return LAYOUT_WIDE.equals(prefs.getString(LAYOUT_KEY, LAYOUT_STACKED))
+                ? LAYOUT_WIDE : LAYOUT_STACKED;
+    }
+
+    static int layoutRes(SharedPreferences prefs) {
+        return LAYOUT_WIDE.equals(layoutMode(prefs)) ? R.layout.widget_shelf
+                : R.layout.widget_shelf_stacked;
+    }
+
+    /** The height the owner picked for one card in settings, in dp. */
+    static int cardHeightDp(SharedPreferences prefs, String id) {
+        return prefs.getInt(HEIGHT_KEY_PREFIX + id, DEFAULT_HEIGHT_DP);
+    }
+
+    /** How wide the owner wants one card, as a percent of its usual share of the row. */
+    static int cardWidthPercent(SharedPreferences prefs, String id) {
+        return prefs.getInt(WIDTH_KEY_PREFIX + id, DEFAULT_WIDTH_PERCENT);
+    }
+
+    /** Sets each card to its own picked height; the shelf fits the tallest card shown. */
+    void applyCardHeight() {
+        int tallest = 0;
+        for (int i = 0; i < cards.length; i++) {
+            int height = Math.round(cardHeightDp(prefs, ALL[i]) * density);
+            ViewGroup.LayoutParams lp = cards[i].getLayoutParams();
+            if (lp != null && lp.height != height) {
+                lp.height = height;
+                cards[i].setLayoutParams(lp);
+            }
+            if (order.contains(ALL[i])) tallest = Math.max(tallest, height);
+        }
+        if (tallest == 0) tallest = Math.round(DEFAULT_HEIGHT_DP * density);
+        ViewGroup.LayoutParams shelfLayout = shelf.getLayoutParams();
+        int shelfHeight = tallest + Math.round(8 * density);
+        if (shelfLayout != null && shelfLayout.height != shelfHeight) {
+            shelfLayout.height = shelfHeight;
+            shelf.setLayoutParams(shelfLayout);
+        }
     }
 
     /**
@@ -731,9 +783,8 @@ final class WidgetShelf {
      * and the calendar carry lists, so they take more. */
     private double weight(WidgetCard card) {
         String id = idOf(card);
-        if (WEATHER.equals(id) || CALENDAR.equals(id)) return 1.15;
-        if (AIR.equals(id)) return 0.7;
-        return 1.0;
+        double base = WEATHER.equals(id) || CALENDAR.equals(id) ? 1.15 : AIR.equals(id) ? 0.7 : 1.0;
+        return base * cardWidthPercent(prefs, id) / 100.0;
     }
 
     private Rect tileBounds(RecyclerView grid, int position) {

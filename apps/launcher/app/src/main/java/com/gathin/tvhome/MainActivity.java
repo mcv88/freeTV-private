@@ -235,6 +235,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView editBarTitle, editBarHint;
     /** The widgets between the header and the dock; shown only with the dock layout. */
     private WidgetShelf widgets;
+    private View shelfView;
+    private String shelfLayout;
     private FocusIndicator focusIndicator;
     /** The clock's divider line, tinted with the scheme. */
     private View clockDivider;
@@ -485,33 +487,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // The widget shelf shares the grid's frame, so its cards can sit exactly over the dock's columns.
         ViewGroup gridFrame = (ViewGroup) grid.getParent();
-        View shelfView = getLayoutInflater().inflate(R.layout.widget_shelf, gridFrame, false);
-        gridFrame.addView(shelfView);
-        widgets = new WidgetShelf(this, shelfView, animations, reducedMotion, advancedEffects, new WidgetShelf.Host() {
-            @Override
-            public void showMenu(View anchor, List<WidgetShelf.MenuItem> items) {
-                showWidgetMenu(anchor, items);
-            }
+        buildShelf(gridFrame);
 
-            @Override
-            public void slotsChanged() {
-                pointHeaderDown();
-            }
-
-            @Override
-            public void carryChanged() {
-                updateEditBar();
-            }
-
-            @Override
-            public boolean startEditing() {
-                return reordering || beginReorder();
-            }
-        });
-        widgets.setOnDown(column -> {
-            focusTile(Math.min(column, Math.max(0, adapter.dockFilled() - 1)));
-            grid.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
-        });
         grid.getViewTreeObserver().addOnGlobalLayoutListener(() -> widgets.align(grid, COLUMNS,
                 grid.getTop() + grid.getPaddingTop() - (int) (DockDecoration.PADDING_DP * density)));
 
@@ -1465,11 +1442,52 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return Motion.DEFAULT_SPATIAL;
     }
 
+    /** Inflates the widget shelf in the arrangement settings asks for, and wires it to the dock. */
+    private void buildShelf(ViewGroup gridFrame) {
+        SharedPreferences settings = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        shelfLayout = WidgetShelf.layoutMode(settings);
+        shelfView = getLayoutInflater().inflate(WidgetShelf.layoutRes(settings), gridFrame, false);
+        gridFrame.addView(shelfView);
+        widgets = new WidgetShelf(this, shelfView, animations, reducedMotion, advancedEffects, new WidgetShelf.Host() {
+            @Override
+            public void showMenu(View anchor, List<WidgetShelf.MenuItem> items) {
+                showWidgetMenu(anchor, items);
+            }
+
+            @Override
+            public void slotsChanged() {
+                pointHeaderDown();
+            }
+
+            @Override
+            public void carryChanged() {
+                updateEditBar();
+            }
+
+            @Override
+            public boolean startEditing() {
+                return reordering || beginReorder();
+            }
+        });
+        widgets.setOnDown(column -> {
+            focusTile(Math.min(column, Math.max(0, adapter.dockFilled() - 1)));
+            grid.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
+        });
+        if (shownPalette != null) widgets.setPalette(shownPalette);
+    }
+
     /**
      * Shows the widget shelf when Launcher settings has it on (and Home has a dock to sit above), and
      * points the header buttons' Down at it or at the grid.
      */
     private void updateWidgets() {
+        SharedPreferences settings = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        if (!WidgetShelf.layoutMode(settings).equals(shelfLayout)) {
+            widgets.stop();
+            ViewGroup frame = (ViewGroup) shelfView.getParent();
+            frame.removeView(shelfView);
+            buildShelf(frame);
+        }
         boolean on = dockRow && getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
                 .getBoolean(WidgetShelf.PREF_KEY, getResources().getBoolean(R.bool.widgets));
         widgets.setEnabled(on);
