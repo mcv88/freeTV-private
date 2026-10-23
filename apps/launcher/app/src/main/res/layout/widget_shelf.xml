@@ -463,83 +463,91 @@
                     android:id="@+id/eventRow0"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/eventName0"
+                        style="@style/WidgetEventName"
+                        android:layout_width="match_parent" />
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/eventName0"
-                            style="@style/WidgetEventName" />
+                        android:layout_marginTop="2dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
                         <TextView
                             android:id="@+id/eventWhen0"
-                            style="@style/WidgetDetail" />
+                            style="@style/WidgetDetail"
+                            android:layout_width="0dp"
+                            android:layout_marginTop="0dp"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/eventBadge0"
+                            style="@style/WidgetBadge" />
                     </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/eventBadge0"
-                        style="@style/WidgetBadge" />
-                </LinearLayout>
-
-                <LinearLayout
+                </LinearLayout><LinearLayout
                     android:id="@+id/eventRow1"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/eventName1"
+                        style="@style/WidgetEventName"
+                        android:layout_width="match_parent" />
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/eventName1"
-                            style="@style/WidgetEventName" />
+                        android:layout_marginTop="2dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
                         <TextView
                             android:id="@+id/eventWhen1"
-                            style="@style/WidgetDetail" />
+                            style="@style/WidgetDetail"
+                            android:layout_width="0dp"
+                            android:layout_marginTop="0dp"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/eventBadge1"
+                            style="@style/WidgetBadge" />
                     </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/eventBadge1"
-                        style="@style/WidgetBadge" />
-                </LinearLayout>
-
-                <LinearLayout
+                </LinearLayout><LinearLayout
                     android:id="@+id/eventRow2"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/eventName2"
+                        style="@style/WidgetEventName"
+                        android:layout_width="match_parent" />
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/eventName2"
-                            style="@style/WidgetEventName" />
+                        android:layout_marginTop="2dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
                         <TextView
                             android:id="@+id/eventWhen2"
-                            style="@style/WidgetDetail" />
-                    </LinearLayout>
+                            style="@style/WidgetDetail"
+                            android:layout_width="0dp"
+                            android:layout_marginTop="0dp"
+                            android:layout_weight="1" />
 
-                    <TextView
-                        android:id="@+id/eventBadge2"
-                        style="@style/WidgetBadge" />
+                        <TextView
+                            android:id="@+id/eventBadge2"
+                            style="@style/WidgetBadge" />
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
@@ -555,7 +563,10 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:padding="14dp">
+            android:paddingStart="14dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="10dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -580,40 +591,33 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/pricesGoldLabel"
+                    style="@style/WidgetLabel"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:text="@string/prices_gold" />
+
+                <TextView
+                    android:id="@+id/pricesBuyLabel"
+                    style="@style/WidgetPriceHead"
+                    android:layout_width="62dp"
+                    android:text="@string/prices_buy" />
+
+                <TextView
+                    android:id="@+id/pricesSellLabel"
+                    style="@style/WidgetPriceHead"
+                    android:layout_width="62dp"
+                    android:text="@string/prices_sell" />
+            </LinearLayout>
 
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:id="@+id/pricesGoldLabel"
-                            style="@style/WidgetLabel"
-                            android:layout_width="0dp"
-                            android:layout_weight="1"
-                            android:text="@string/prices_gold" />
-
-                        <TextView
-                            android:id="@+id/pricesBuyLabel"
-                            style="@style/WidgetPriceHead"
-                            android:text="@string/prices_buy" />
-
-                        <TextView
-                            android:id="@+id/pricesSellLabel"
-                            style="@style/WidgetPriceHead"
-                            android:text="@string/prices_sell" />
-                    </LinearLayout>
-
-                    <LinearLayout style="@style/WidgetPriceRow">
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
 
                         <TextView
                             android:id="@+id/pricesBarName"
@@ -622,14 +626,18 @@
 
                         <TextView
                             android:id="@+id/pricesBarBuy"
-                            style="@style/WidgetPriceValue" />
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="62dp" />
 
                         <TextView
                             android:id="@+id/pricesBarSell"
-                            style="@style/WidgetPriceValue" />
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="62dp" />
                     </LinearLayout>
 
-                    <LinearLayout style="@style/WidgetPriceRow">
+                    <LinearLayout
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
 
                         <TextView
                             android:id="@+id/pricesRingName"
@@ -638,41 +646,39 @@
 
                         <TextView
                             android:id="@+id/pricesRingBuy"
-                            style="@style/WidgetPriceValue" />
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="62dp" />
 
                         <TextView
                             android:id="@+id/pricesRingSell"
-                            style="@style/WidgetPriceValue" />
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="62dp" />
                     </LinearLayout>
-                </LinearLayout>
 
-                <LinearLayout
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/pricesFuelLabel"
+                    style="@style/WidgetLabel"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
                     android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:text="@string/prices_fuel" />
+
+                <TextView
+                    android:id="@+id/pricesRegionLabel"
+                    style="@style/WidgetPriceHead"
+                    android:layout_width="wrap_content"
+                    android:text="@string/prices_region1" />
+            </LinearLayout>
 
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:id="@+id/pricesFuelLabel"
-                            style="@style/WidgetLabel"
-                            android:layout_width="0dp"
-                            android:layout_weight="1"
-                            android:text="@string/prices_fuel" />
-
-                        <TextView
-                            android:id="@+id/pricesRegionLabel"
-                            style="@style/WidgetPriceHead"
-                            android:text="@string/prices_region1" />
-                    </LinearLayout>
-
-                    <LinearLayout style="@style/WidgetPriceRow">
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
 
                         <TextView
                             android:id="@+id/pricesRon95Name"
@@ -681,10 +687,13 @@
 
                         <TextView
                             android:id="@+id/pricesRon95"
-                            style="@style/WidgetPriceValue" />
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="132dp" />
                     </LinearLayout>
 
-                    <LinearLayout style="@style/WidgetPriceRow">
+                    <LinearLayout
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
 
                         <TextView
                             android:id="@+id/pricesE5Name"
@@ -693,10 +702,13 @@
 
                         <TextView
                             android:id="@+id/pricesE5"
-                            style="@style/WidgetPriceValue" />
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="132dp" />
                     </LinearLayout>
 
-                    <LinearLayout style="@style/WidgetPriceRow">
+                    <LinearLayout
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
 
                         <TextView
                             android:id="@+id/pricesDieselName"
@@ -705,10 +717,13 @@
 
                         <TextView
                             android:id="@+id/pricesDiesel"
-                            style="@style/WidgetPriceValue" />
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="132dp" />
                     </LinearLayout>
 
-                    <LinearLayout style="@style/WidgetPriceRow">
+                    <LinearLayout
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
 
                         <TextView
                             android:id="@+id/pricesUsdName"
@@ -717,10 +732,9 @@
 
                         <TextView
                             android:id="@+id/pricesUsd"
-                            style="@style/WidgetPriceValue" />
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="132dp" />
                     </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
         </LinearLayout>
     </com.gathin.tvhome.WidgetCard>
 
