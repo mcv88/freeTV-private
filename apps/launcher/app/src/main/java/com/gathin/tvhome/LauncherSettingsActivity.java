@@ -59,6 +59,9 @@ public final class LauncherSettingsActivity extends Activity {
     private M3Switch headlineStripSwitch;
     private TextView headerBoldChoice;
     private M3Switch headerBoldSwitch;
+    private TextView headerDateTopChoice;
+    private M3Switch headerDateTopSwitch;
+    private TextView widgetSectionChoice;
     private TextView widgetLayoutChoice;
     private TextView widgetTapChoice;
     private TextView popupBlurChoice;
@@ -175,10 +178,24 @@ public final class LauncherSettingsActivity extends Activity {
             choices.edit().putBoolean(MainActivity.HEADER_BOLD_KEY, on).apply();
             headerBoldSwitch.setChecked(on);
         });
+        headerDateTopChoice = findViewById(R.id.headerDateTopChoice);
+        headerDateTopChoice.setText(item(getString(R.string.header_date_top),
+                getString(R.string.header_date_top_desc)));
+        headerDateTopSwitch = new M3Switch(density, palette, config.animations);
+        headerDateTopSwitch.setChecked(
+                choices.getBoolean(MainActivity.HEADER_DATE_TOP_KEY, false));
+        headerDateTopChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_move), null, headerDateTopSwitch, null);
+        headerDateTopChoice.setOnClickListener(v -> {
+            boolean on = !choices.getBoolean(MainActivity.HEADER_DATE_TOP_KEY, false);
+            choices.edit().putBoolean(MainActivity.HEADER_DATE_TOP_KEY, on).apply();
+            headerDateTopSwitch.setChecked(on);
+        });
         showWidgetToggles(density);
         showWidgetLayout(config);
         showWidgetHeights(config);
         showWidgetWidths(config);
+        showWidgetSection();
         tvSettingsChoice.setOnClickListener(v -> open(TvSettings.main(this)));
         showMenuInputs(config, density);
         showLook(config);
@@ -216,6 +233,37 @@ public final class LauncherSettingsActivity extends Activity {
             R.drawable.ic_air, R.drawable.ic_calendar, R.drawable.ic_speed};
     private final TextView[] widgetRows = new TextView[WIDGET_IDS.length];
     private final M3Switch[] widgetSwitches = new M3Switch[WIDGET_IDS.length];
+
+    private static final String WIDGET_SECTION_KEY = "widget_section";
+
+    private void showWidgetSection() {
+        widgetSectionChoice = findViewById(R.id.widgetSectionChoice);
+        widgetSectionChoice.setText(item(getString(R.string.widgets),
+                getString(R.string.widget_section_desc)));
+        widgetSectionChoice.setOnClickListener(v -> {
+            boolean expanded = !choices.getBoolean(WIDGET_SECTION_KEY, false);
+            choices.edit().putBoolean(WIDGET_SECTION_KEY, expanded).apply();
+            refreshWidgetSection();
+        });
+        refreshWidgetSection();
+    }
+
+    private void refreshWidgetSection() {
+        boolean expanded = choices.getBoolean(WIDGET_SECTION_KEY, false);
+        widgetSectionChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_widgets), null,
+                icon(expanded ? R.drawable.ic_remove : R.drawable.ic_add), null);
+        int visibility = expanded ? View.VISIBLE : View.GONE;
+        widgetsChoice.setVisibility(visibility);
+        widgetLayoutChoice.setVisibility(visibility);
+        widgetTapChoice.setVisibility(visibility);
+        popupBlurChoice.setVisibility(visibility);
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            widgetRows[i].setVisibility(visibility);
+            widgetHeightRows[i].setVisibility(visibility);
+            widgetWidthRows[i].setVisibility(visibility);
+        }
+    }
 
     /**
      * One switch per widget under the master one: the same list Home's shelf keeps (ORDER_KEY),

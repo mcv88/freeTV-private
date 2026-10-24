@@ -68,11 +68,13 @@
 
                 <LinearLayout style="@style/SettingsSheetGroup">
                     <TextView android:id="@+id/columnsChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetSectionChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetsChoice" style="@style/SettingsListItem" />
                     <TextView
                         android:id="@+id/headlineStripChoice"
                         style="@style/SettingsListItem" />
                     <TextView android:id="@+id/headerBoldChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/headerDateTopChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetLayoutChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetTapChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/popupBlurChoice" style="@style/SettingsListItem" />

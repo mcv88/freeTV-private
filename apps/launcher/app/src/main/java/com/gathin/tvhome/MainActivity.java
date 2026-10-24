@@ -103,6 +103,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     static final String POPUP_BLUR_KEY = "popup_blur";
     static final String HEADLINE_STRIP_KEY = "headline_strip";
     static final String HEADER_BOLD_KEY = "header_bold";
+    static final String HEADER_DATE_TOP_KEY = "header_date_top";
     static final String POPUP_BLUR_ALL = "all";
     static final String POPUP_BLUR_DIM = "dim";
     static final String POPUP_BLUR_OFF = "off";
@@ -1417,12 +1418,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float cap = -digit.top;
         float clockBaseline = yInRoot(clock) + clock.getBaseline();
 
-        // The date sits at the top of the digits, level with the divider.
         View dateBlock = (View) date.getParent();
-        Rect dateDigit = new Rect();
-        date.getPaint().getTextBounds("0", 0, 1, dateDigit);
-        float dateGlyphTop = yInRoot(date) + date.getBaseline() + dateDigit.top;
-        dateBlock.setTranslationY(clockBaseline - cap - dateGlyphTop);
+        if (settingsPreferences.getBoolean(HEADER_DATE_TOP_KEY, false)) {
+            Rect dateDigit = new Rect();
+            date.getPaint().getTextBounds("0", 0, 1, dateDigit);
+            float dateGlyphTop = yInRoot(date) + date.getBaseline() + dateDigit.top;
+            dateBlock.setTranslationY(clockBaseline - cap - dateGlyphTop);
+        } else {
+            float stackCentre = yInRoot(dateBlock) + dateBlock.getHeight() / 2f;
+            dateBlock.setTranslationY(clockBaseline - cap / 2f - stackCentre);
+        }
 
         if (divider != null && divider.getHeight() > 0) {
             float top = yInRoot(divider);
