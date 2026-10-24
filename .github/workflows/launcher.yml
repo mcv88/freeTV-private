@@ -61,9 +61,14 @@ jobs:
           echo "KM_KEYSTORE=$RUNNER_TEMP/debug.keystore" >> "$GITHUB_ENV"
 
       - env:
-          KM_KEYSTORE_PASSWORD: ${{ inputs.version != '' && secrets.KM_KEYSTORE_PASSWORD || secrets.KM_DEBUG_KEYSTORE_PASSWORD }}
-          KM_KEY_ALIAS: ${{ inputs.version != '' && secrets.KM_KEY_ALIAS || secrets.KM_DEBUG_KEY_ALIAS }}
-          KM_KEY_PASSWORD: ${{ inputs.version != '' && secrets.KM_KEY_PASSWORD || secrets.KM_DEBUG_KEY_PASSWORD }}
+          KM_KEYSTORE_PASSWORD: ${{ inputs.version != ''
+            && secrets.KM_KEYSTORE_PASSWORD
+            || secrets.KM_DEBUG_KEYSTORE_PASSWORD }}
+          KM_KEY_ALIAS: ${{ inputs.version != ''
+            && secrets.KM_KEY_ALIAS || secrets.KM_DEBUG_KEY_ALIAS }}
+          KM_KEY_PASSWORD: ${{ inputs.version != ''
+            && secrets.KM_KEY_PASSWORD
+            || secrets.KM_DEBUG_KEY_PASSWORD }}
           VERSION: ${{ inputs.version }}
         run: |
           chmod +x gradlew
