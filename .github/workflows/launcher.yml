@@ -48,10 +48,22 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
           echo "KM_KEYSTORE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
 
+      - name: Debug key
+        if: inputs.version == ''
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KM_DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::KM_DEBUG_KEYSTORE_BASE64 is not set"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/debug.keystore"
+          echo "KM_KEYSTORE=$RUNNER_TEMP/debug.keystore" >> "$GITHUB_ENV"
+
       - env:
-          KM_KEYSTORE_PASSWORD: ${{ secrets.KM_KEYSTORE_PASSWORD }}
-          KM_KEY_ALIAS: ${{ secrets.KM_KEY_ALIAS }}
-          KM_KEY_PASSWORD: ${{ secrets.KM_KEY_PASSWORD }}
+          KM_KEYSTORE_PASSWORD: ${{ inputs.version != '' && secrets.KM_KEYSTORE_PASSWORD || secrets.KM_DEBUG_KEYSTORE_PASSWORD }}
+          KM_KEY_ALIAS: ${{ inputs.version != '' && secrets.KM_KEY_ALIAS || secrets.KM_DEBUG_KEY_ALIAS }}
+          KM_KEY_PASSWORD: ${{ inputs.version != '' && secrets.KM_KEY_PASSWORD || secrets.KM_DEBUG_KEY_PASSWORD }}
           VERSION: ${{ inputs.version }}
         run: |
           chmod +x gradlew
