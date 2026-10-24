@@ -141,19 +141,8 @@
                     android:layout_marginStart="24dp"
                     android:orientation="vertical">
 
-                    <!-- At a Glance: the greeting and the date stacked beside the clock, centred on its
+                    <!-- At a Glance: the date stacked beside the clock, centred on its
                          digits (MainActivity.alignHeader). -->
-                    <TextView
-                        android:id="@+id/greeting"
-                        android:gravity="left"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:singleLine="true"
-                        android:ellipsize="end"
-                                                    android:textColor="#8CFFFFFF"
-                        android:textSize="20sp"
-                        android:fontFamily="@font/sans_medium"
-                        android:letterSpacing="0.01" />
 
                     <!-- Shamsi date ("27 Mehr 1405"), shown when shamsi_date is on. -->
                     <TextView

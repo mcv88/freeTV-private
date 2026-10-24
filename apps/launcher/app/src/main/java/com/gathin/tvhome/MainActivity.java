@@ -145,10 +145,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean heroShown;
     private boolean animations;
     private boolean advancedEffects;
-    private TextView greeting;
     private TextView headlineStrip;
     private List<String> headlines = new ArrayList<>();
     private List<String> matches = new ArrayList<>();
+    private List<String> espn = new ArrayList<>();
     private List<String> headlineItems = new ArrayList<>();
     private int headlineIndex;
     private View btnInputs;
@@ -160,8 +160,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
     private boolean shamsi;
-    /** greeting_name: said after the greeting, which is shown in capitals. */
-    private String greetingName = "";
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
     private String vpnApp;
@@ -192,7 +190,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private DiyaDrawable diya;
     private BellDrawable bell;
     private MarigoldDrawable marigold;
-    private int greetingColor;
     /** The day the petal shower last played, so it greets the first Home of each day only. */
     private static LocalDate lastPetalShower;
     /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
@@ -319,7 +316,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final Runnable minuteTick = new Runnable() {
         @Override
         public void run() {
-            updateGreeting();
             updateWifiLabel();
             sky.update();
             wallpaperPlayer.update();
@@ -333,6 +329,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (rainLine() == null && headlineItems.size() > 1) {
                 headlineIndex = (headlineIndex + 1) % headlineItems.size();
             }
+            refreshMatches();
+            refreshEspn();
             refreshHeadline();
             handler.postDelayed(this, 10_000);
         }
@@ -382,15 +380,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName = findViewById(R.id.heroName);
         // dock_title false: the name above the dock never shows; the glow still follows the dock.
         if (!cfg.dockTitle) heroName.setVisibility(View.GONE);
-        greeting = findViewById(R.id.greeting);
         headlineStrip = findViewById(R.id.headlineStrip);
-        greetingColor = greeting.getCurrentTextColor();
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
         stats = findViewById(R.id.stats);
         showStats = cfg.showStats;
         shamsi = cfg.shamsiDate;
-        greetingName = cfg.greetingName;
         // Compact header: the date short and in the TV's language ("Wed, 21 Oct", "Th 4, 21 thg 10").
         String shortDate = android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEdMMM");
         TextClock dateClock = findViewById(R.id.date);
@@ -733,9 +728,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         rebuildOnResume = false;
-        updateGreeting();
         refreshHeadlines();
         refreshMatches();
+        refreshEspn();
         refreshHeadline();
         handler.postDelayed(headlineTick, 10_000);
         updateWifiLabel();
@@ -1343,8 +1338,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ((TextView) findViewById(R.id.date)).setTextColor(p.onSurfaceVariant);
         ((TextView) findViewById(R.id.shamsiDate)).setTextColor(p.onSurfaceVariant);
         ((TextView) findViewById(R.id.stats)).setTextColor(p.onSurfaceVariant);
-        greetingColor = p.onSurface;
-        if (!festive) greeting.setTextColor(greetingColor);
         heroName.setTextColor(p.onSurface);
         if (clockDivider == null) clockDivider = findViewById(R.id.clockDivider);
         if (clockDivider != null) clockDivider.setBackgroundColor(p.outlineVariant);
@@ -1411,7 +1404,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float cap = -digit.top;
         float clockBaseline = yInRoot(clock) + clock.getBaseline();
 
-        // At a Glance: the greeting-and-date stack centred on the digits, like the header buttons.
+        // At a Glance: the date stack centred on the digits, like the header buttons.
         View dateBlock = (View) date.getParent();
         float stackCentre = yInRoot(dateBlock) + dateBlock.getHeight() / 2f;
         dateBlock.setTranslationY(clockBaseline - cap / 2f - stackCentre);
@@ -2143,10 +2136,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }).start();
     }
 
+    private void refreshEspn() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        if (!espn.isEmpty() && !EspnFeed.stale(this, System.currentTimeMillis())) return;
+        new Thread(() -> {
+            List<String> fresh = EspnFeed.fetch(this);
+            handler.post(() -> {
+                espn = fresh;
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            });
+        }).start();
+    }
+
     private void rebuildHeadlineRotation() {
         List<String> items = new ArrayList<>();
-        items.addAll(headlines);
-        items.addAll(matches);
+        for (String line : headlines) if (!items.contains(line)) items.add(line);
+        for (String line : matches) if (!items.contains(line)) items.add(line);
+        for (String line : espn) if (!items.contains(line)) items.add(line);
         headlineItems = items;
         if (headlineIndex >= items.size()) headlineIndex = 0;
     }
@@ -2185,29 +2192,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (stopsIn > 0) return getString(R.string.rain_stops_in, (int) stopsIn);
         }
         return null;
-    }
-
-    private void updateGreeting() {
-        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        int res;
-        if (hour < 5) res = R.string.good_night;
-        else if (hour < 12) res = R.string.good_morning;
-        else if (hour < 17) res = R.string.good_afternoon;
-        else if (hour < 22) res = R.string.good_evening;
-        else res = R.string.good_night;
-        String festiveGreeting = festive ? festival.greetingText() : "";
-        if (!festiveGreeting.isEmpty()) {
-            greeting.setText(festiveGreeting);
-            greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
-        } else {
-            // The owner's name from Launcher settings, else greeting_name (config.xml or a theme).
-            String name = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
-                    .getString(LauncherSettingsActivity.NAME_KEY, greetingName).trim();
-            greeting.setText(name.isEmpty() ? getString(res)
-                    : getString(R.string.greeting_with_name, getString(res), name));
-            greeting.setTextColor(greetingColor);
-        }
-        if (shamsi) shamsiDate.setText(Shamsi.today());
     }
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */

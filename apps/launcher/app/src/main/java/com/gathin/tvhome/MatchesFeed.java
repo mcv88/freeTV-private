@@ -24,6 +24,7 @@ final class MatchesFeed {
     private static final String LINES_KEY = "matches_lines", AT_KEY = "matches_at";
     private static final int MAX_MATCHES = 6;
     private static final long FRESH_MS = 30 * 60 * 1000;
+    private static final long LIVE_FRESH_MS = 2 * 60 * 1000;
     private static final Pattern FIXTURE = Pattern.compile(
             "^(.+?)\\s+vs\\s+(.+?)$\\s*^(\\d{2}/\\d{2}/\\d{2})\\s+-\\s+"
                     + "(Trực tiếp|\\d{2}:\\d{2})$",
@@ -48,7 +49,14 @@ final class MatchesFeed {
     }
 
     static boolean stale(Context context, long now) {
-        return now - prefs(context).getLong(AT_KEY, 0) > FRESH_MS;
+        long age = now - prefs(context).getLong(AT_KEY, 0);
+        if (age > FRESH_MS) return true;
+        if (age <= LIVE_FRESH_MS) return false;
+        String live = context.getString(R.string.headline_match_live);
+        for (String line : cached(context)) {
+            if (line.startsWith(live)) return true;
+        }
+        return false;
     }
 
     static List<String> fetch(Context context) {
@@ -94,8 +102,13 @@ final class MatchesFeed {
             String when = matcher.group(4);
             String line;
             if (when.equals("Trực tiếp")) {
-                line = context.getString(R.string.headline_match_live)
-                        + " " + home + " - " + away;
+                String live = context.getString(R.string.headline_match_live);
+                String score = liveScore(text, matcher.end());
+                if (score == null) {
+                    line = live + " " + home + " - " + away;
+                } else {
+                    line = live + " " + home + " " + score + " " + away;
+                }
             } else {
                 int hour = Integer.parseInt(when.substring(0, 2));
                 int minute = Integer.parseInt(when.substring(3, 5));
@@ -106,5 +119,18 @@ final class MatchesFeed {
             if (!lines.contains(line)) lines.add(line);
         }
         return lines;
+    }
+
+    private static String liveScore(String text, int from) {
+        String tail = text.substring(from, Math.min(text.length(), from + 400));
+        List<String> rows = new ArrayList<>();
+        for (String row : tail.split("\n")) {
+            String trimmed = row.trim();
+            if (!trimmed.isEmpty()) rows.add(trimmed);
+            if (rows.size() >= 4) break;
+        }
+        if (rows.size() < 4) return null;
+        if (!rows.get(1).matches("\\d+") || !rows.get(3).matches("\\d+")) return null;
+        return rows.get(1) + " - " + rows.get(3);
     }
 }

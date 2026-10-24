@@ -105,11 +105,6 @@
                     <TextView android:id="@+id/screensaverStyleChoice" style="@style/SettingsListItem" />
                 </LinearLayout>
 
-                <TextView style="@style/SettingsSheetLabel" android:text="@string/settings_group_you" />
-                <LinearLayout style="@style/SettingsSheetGroup">
-                    <TextView android:id="@+id/nameChoice" style="@style/SettingsListItem" />
-                </LinearLayout>
-
                 <TextView style="@style/SettingsSheetLabel" android:text="@string/settings_group_motion" />
                 <LinearLayout style="@style/SettingsSheetGroup">
                     <TextView android:id="@+id/animationsChoice" style="@style/SettingsListItem" />

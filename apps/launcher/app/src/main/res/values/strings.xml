@@ -10,10 +10,6 @@
     <string name="not_connected">No device</string>
     <string name="live_tv">Live TV</string>
     <string name="no_inputs">No inputs found</string>
-    <string name="good_morning">Good morning</string>
-    <string name="good_afternoon">Good afternoon</string>
-    <string name="good_evening">Good evening</string>
-    <string name="good_night">Good night</string>
     <string name="ethernet">Ethernet</string>
     <string name="offline">Offline</string>
     <string name="not_available">Not available on this TV</string>
@@ -102,8 +98,6 @@
         <item quantity="one">%1$d app</item>
         <item quantity="other">%1$d apps</item>
     </plurals>
-    <!-- The greeting, then greeting_name: "Good morning, Mr. Trịnh". -->
-    <string name="greeting_with_name">%1$s, %2$s</string>
 
     <!-- Home widgets (WidgetShelf) -->
     <string name="widgets">Widgets</string>
@@ -256,7 +250,6 @@
 
     <!-- Greeting name (Launcher settings) -->
     <string name="settings_group_home">Home</string>
-    <string name="settings_group_you">You</string>
     <string name="settings_group_motion">Motion</string>
     <string name="settings_group_system">System</string>
     <string name="settings_group_about">About</string>
@@ -268,8 +261,6 @@
     <string name="about_stock_off">Turned off</string>
     <string name="about_stock_on">Turned on</string>
     <string name="about_stock_none">Not on this TV</string>
-    <string name="your_name">Your name</string>
-    <string name="your_name_none">Not set</string>
     <string name="save">Save</string>
 
     <!-- Wi-Fi menu (hold OK on the Wi-Fi pill) -->

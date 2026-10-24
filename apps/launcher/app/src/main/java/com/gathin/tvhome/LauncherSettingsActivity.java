@@ -54,7 +54,6 @@ public final class LauncherSettingsActivity extends Activity {
     private M3Switch animationsSwitch;
     private M3Switch advancedSwitch;
     private M3Switch widgetsSwitch;
-    private TextView nameChoice;
     private TextView widgetsChoice;
     private TextView headlineStripChoice;
     private M3Switch headlineStripSwitch;
@@ -80,8 +79,6 @@ public final class LauncherSettingsActivity extends Activity {
     private Palette palette;
     /** Google TV's own home screen, which tvctl turns off when this launcher takes over. */
     private static final String STOCK_LAUNCHER = "com.google.android.apps.tv.launcherx";
-    /** The name Home greets with after the greeting; greeting_name in config.xml until set here. */
-    static final String NAME_KEY = "greeting_name";
     private int columns;
     private boolean animations;
     private boolean advancedEffects;
@@ -137,10 +134,6 @@ public final class LauncherSettingsActivity extends Activity {
                 icon(R.drawable.ic_refresh), null, null, null);
         resetChoice.setOnClickListener(v -> confirmResetSettings(config));
 
-        nameChoice = findViewById(R.id.nameChoice);
-        nameChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_person), null, null, null);
-        showName();
-        nameChoice.setOnClickListener(v -> editName(config));
         widgetsChoice = findViewById(R.id.widgetsChoice);
         widgetsChoice.setText(item(getString(R.string.widgets), getString(R.string.widgets_desc)));
         boolean widgetsDefault = getResources().getBoolean(R.bool.widgets);
@@ -709,67 +702,6 @@ public final class LauncherSettingsActivity extends Activity {
         }
     }
 
-    private String name() {
-        return choices.getString(NAME_KEY, getString(R.string.greeting_name)).trim();
-    }
-
-    private void showName() {
-        String name = name();
-        nameChoice.setText(item(getString(R.string.your_name), name.isEmpty() ? getString(R.string.your_name_none) : name));
-    }
-
-    private void editName(Config config) {
-        Palette p = Palette.currentOrBaseline();
-        float d = getResources().getDisplayMetrics().density;
-        LinearLayout panel = dialogPanel(R.string.your_name, p, d);
-
-        EditText field = new EditText(this);
-        field.setSingleLine(true);
-        field.setText(name());
-        field.setSelection(field.getText().length());
-        field.setHint(R.string.your_name);
-        field.setTextSize(18f);
-        field.setTextColor(p.onSurface);
-        field.setHintTextColor(p.onSurfaceVariant);
-        field.setImeOptions(EditorInfo.IME_ACTION_DONE);
-        GradientDrawable box = new GradientDrawable();
-        box.setCornerRadius(Shapes.EXTRA_SMALL * d);
-        box.setStroke((int) (2 * d), p.primary);
-        field.setBackground(box);
-        int fieldPadding = (int) (16 * d);
-        field.setPadding(fieldPadding, fieldPadding, fieldPadding, fieldPadding);
-        LinearLayout.LayoutParams fieldLayout = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        fieldLayout.topMargin = (int) (16 * d);
-        panel.addView(field, fieldLayout);
-
-        LinearLayout buttons = dialogButtonRow(panel, d);
-        TextView cancel = dialogButton(android.R.string.cancel, d);
-        TextView save = dialogButton(R.string.save, d);
-        buttons.addView(cancel);
-        buttons.addView(save);
-        ((LinearLayout.LayoutParams) save.getLayoutParams()).setMarginStart((int) (8 * d));
-
-        Dialog dialog = showDialog(panel, p, config, d);
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
-        }
-
-        Runnable commit = () -> {
-            choices.edit().putString(NAME_KEY, field.getText().toString().trim()).apply();
-            showName();
-            dialog.dismiss();
-        };
-        save.setOnClickListener(v -> commit.run());
-        cancel.setOnClickListener(v -> dialog.dismiss());
-        field.setOnEditorActionListener((v, action, event) -> {
-            if (action != EditorInfo.IME_ACTION_DONE) return false;
-            commit.run();
-            return true;
-        });
-        field.requestFocus();
-    }
 
     private void chooseColumns(Config config) {
         CharSequence[] labels = new CharSequence[COLUMN_OPTIONS.length];
