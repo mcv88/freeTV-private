@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 final class LauncherRelease {
 
     private static final String LATEST_URL =
-            "https://api.github.com/repos/kienmai160598/freeTV/releases/latest";
+            "https://api.github.com/repos/mcv88/freeTV-private/releases/latest";
     private static final String APK_ASSET = "km-launcher.apk";
     private static final String SHA256_PREFIX = "sha256:";
     private static final int TIMEOUT_MS = 15_000;
