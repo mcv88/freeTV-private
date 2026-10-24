@@ -102,6 +102,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** How the detail popup covers Home (Launcher settings): blur it all, dim only, or nothing. */
     static final String POPUP_BLUR_KEY = "popup_blur";
     static final String HEADLINE_STRIP_KEY = "headline_strip";
+    static final String HEADER_BOLD_KEY = "header_bold";
     static final String POPUP_BLUR_ALL = "all";
     static final String POPUP_BLUR_DIM = "dim";
     static final String POPUP_BLUR_OFF = "off";
@@ -329,6 +330,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (rainLine() == null && headlineItems.size() > 1) {
                 headlineIndex = (headlineIndex + 1) % headlineItems.size();
             }
+            refreshHeadlines();
             refreshMatches();
             refreshEspn();
             refreshHeadline();
@@ -728,6 +730,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         rebuildOnResume = false;
+        applyHeaderBold();
         refreshHeadlines();
         refreshMatches();
         refreshEspn();
@@ -1393,6 +1396,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * exactly as tall as the digits' cap height and standing on that baseline, and the button group
      * centred on the digits. Done with translations, so it never re-enters layout.
      */
+    private void applyHeaderBold() {
+        boolean bold = settingsPreferences.getBoolean(HEADER_BOLD_KEY, false);
+        TextView clock = findViewById(R.id.clock);
+        TextView date = findViewById(R.id.date);
+        clock.setTypeface(getResources().getFont(bold
+                ? R.font.sans_display_bold : R.font.sans_display));
+        date.setTypeface(getResources().getFont(bold
+                ? R.font.sans_medium : R.font.sans_regular));
+    }
+
     private void alignHeader() {
         TextView clock = findViewById(R.id.clock);
         TextView date = findViewById(R.id.date);
@@ -1404,10 +1417,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float cap = -digit.top;
         float clockBaseline = yInRoot(clock) + clock.getBaseline();
 
-        // At a Glance: the date stack centred on the digits, like the header buttons.
+        // The date sits at the top of the digits, level with the divider.
         View dateBlock = (View) date.getParent();
-        float stackCentre = yInRoot(dateBlock) + dateBlock.getHeight() / 2f;
-        dateBlock.setTranslationY(clockBaseline - cap / 2f - stackCentre);
+        Rect dateDigit = new Rect();
+        date.getPaint().getTextBounds("0", 0, 1, dateDigit);
+        float dateGlyphTop = yInRoot(date) + date.getBaseline() + dateDigit.top;
+        dateBlock.setTranslationY(clockBaseline - cap - dateGlyphTop);
 
         if (divider != null && divider.getHeight() > 0) {
             float top = yInRoot(divider);

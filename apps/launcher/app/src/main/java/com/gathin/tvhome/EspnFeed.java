@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import java.io.BufferedReader;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -17,7 +16,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.zip.GZIPInputStream;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -32,8 +30,7 @@ final class EspnFeed {
     private static final long FRESH_MS = 30 * 60 * 1000;
     private static final long LIVE_FRESH_MS = 2 * 60 * 1000;
     private static final long FINISHED_KEEP_MS = 12 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000;
-    private static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 14; TV)"
-            + " AppleWebKit/537.36 Chrome/120.0 Safari/537.36";
+    private static final String USER_AGENT = "tvhome-launcher";
 
     private EspnFeed() {
     }
@@ -90,13 +87,9 @@ final class EspnFeed {
             http.setConnectTimeout(30_000);
             http.setReadTimeout(30_000);
             http.setRequestProperty("User-Agent", USER_AGENT);
-            http.setRequestProperty("Accept-Encoding", "gzip");
-            InputStream raw = http.getInputStream();
-            InputStream in = "gzip".equalsIgnoreCase(http.getContentEncoding())
-                    ? new GZIPInputStream(raw) : raw;
             StringBuilder out = new StringBuilder();
             try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                    new InputStreamReader(http.getInputStream(), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) out.append(line).append('\n');
             }

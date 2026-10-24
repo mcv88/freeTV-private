@@ -214,6 +214,8 @@
     <string name="headline_match_prefix">Tonight</string>
     <string name="headline_match_live">Live now</string>
     <string name="headline_match_finished">Full time</string>
+    <string name="header_bold">Bold clock and date</string>
+    <string name="header_bold_desc">Heavier type for the clock and the date line</string>
     <string name="headline_strip">Headline strip</string>
     <string name="headline_strip_desc">Rain alerts, hot news, matches tonight, in the header</string>
     <string name="prices_gold">Gold · ₫m/tael</string>

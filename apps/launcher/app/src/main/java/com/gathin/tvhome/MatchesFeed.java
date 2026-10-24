@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import java.io.BufferedReader;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -16,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
 
 final class MatchesFeed {
 
@@ -26,8 +24,7 @@ final class MatchesFeed {
     private static final int MAX_MATCHES = 6;
     private static final long FRESH_MS = 30 * 60 * 1000;
     private static final long LIVE_FRESH_MS = 2 * 60 * 1000;
-    private static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 14; TV)"
-            + " AppleWebKit/537.36 Chrome/120.0 Safari/537.36";
+    private static final String USER_AGENT = "tvhome-launcher";
     private static final Pattern FIXTURE = Pattern.compile(
             "^(.+?)\\s+vs\\s+(.+?)$\\s*^(\\d{2}/\\d{2}/\\d{2})\\s+-\\s+"
                     + "(Trực tiếp|\\d{2}:\\d{2})$",
@@ -77,13 +74,9 @@ final class MatchesFeed {
             http.setConnectTimeout(30_000);
             http.setReadTimeout(30_000);
             http.setRequestProperty("User-Agent", USER_AGENT);
-            http.setRequestProperty("Accept-Encoding", "gzip");
-            InputStream raw = http.getInputStream();
-            InputStream in = "gzip".equalsIgnoreCase(http.getContentEncoding())
-                    ? new GZIPInputStream(raw) : raw;
             StringBuilder out = new StringBuilder();
             try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                    new InputStreamReader(http.getInputStream(), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) out.append(line).append('\n');
             }

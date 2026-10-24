@@ -8,8 +8,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
-
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
@@ -19,8 +17,7 @@ final class NewsFeed {
     private static final String TITLES_KEY = "news_titles", AT_KEY = "news_at";
     private static final int MAX_TITLES = 8;
     private static final long FRESH_MS = 30 * 60 * 1000;
-    private static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 14; TV)"
-            + " AppleWebKit/537.36 Chrome/120.0 Safari/537.36";
+    private static final String USER_AGENT = "tvhome-launcher";
 
     private NewsFeed() {
     }
@@ -58,11 +55,7 @@ final class NewsFeed {
             http.setConnectTimeout(30_000);
             http.setReadTimeout(30_000);
             http.setRequestProperty("User-Agent", USER_AGENT);
-            http.setRequestProperty("Accept-Encoding", "gzip");
-            InputStream raw = http.getInputStream();
-            InputStream in = "gzip".equalsIgnoreCase(http.getContentEncoding())
-                    ? new GZIPInputStream(raw) : raw;
-            try (InputStream stream = in) {
+            try (InputStream stream = http.getInputStream()) {
                 return parse(stream);
             }
         } catch (Exception e) {

@@ -57,6 +57,8 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView widgetsChoice;
     private TextView headlineStripChoice;
     private M3Switch headlineStripSwitch;
+    private TextView headerBoldChoice;
+    private M3Switch headerBoldSwitch;
     private TextView widgetLayoutChoice;
     private TextView widgetTapChoice;
     private TextView popupBlurChoice;
@@ -159,6 +161,19 @@ public final class LauncherSettingsActivity extends Activity {
             boolean on = !choices.getBoolean(MainActivity.HEADLINE_STRIP_KEY, true);
             choices.edit().putBoolean(MainActivity.HEADLINE_STRIP_KEY, on).apply();
             headlineStripSwitch.setChecked(on);
+        });
+        headerBoldChoice = findViewById(R.id.headerBoldChoice);
+        headerBoldChoice.setText(item(getString(R.string.header_bold),
+                getString(R.string.header_bold_desc)));
+        headerBoldSwitch = new M3Switch(density, palette, config.animations);
+        headerBoldSwitch.setChecked(
+                choices.getBoolean(MainActivity.HEADER_BOLD_KEY, false));
+        headerBoldChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_contrast), null, headerBoldSwitch, null);
+        headerBoldChoice.setOnClickListener(v -> {
+            boolean on = !choices.getBoolean(MainActivity.HEADER_BOLD_KEY, false);
+            choices.edit().putBoolean(MainActivity.HEADER_BOLD_KEY, on).apply();
+            headerBoldSwitch.setChecked(on);
         });
         showWidgetToggles(density);
         showWidgetLayout(config);

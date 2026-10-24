@@ -192,6 +192,8 @@
     <string name="headline_match_prefix">Tối nay</string>
     <string name="headline_match_live">Đang đá</string>
     <string name="headline_match_finished">Hết giờ</string>
+    <string name="header_bold">Chữ ngày giờ đậm</string>
+    <string name="header_bold_desc">Nét chữ đậm hơn cho giờ và dòng thứ ngày</string>
     <string name="headline_strip">Dải tin đầu trang</string>
     <string name="headline_strip_desc">Cảnh báo mưa, tin nóng và trận tối nay ở đầu trang</string>
     <string name="prices_gold">Vàng · triệu đ/lượng</string>
