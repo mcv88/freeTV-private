@@ -68,7 +68,31 @@
 
                 <LinearLayout style="@style/SettingsSheetGroup">
                     <TextView android:id="@+id/columnsChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetSectionChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/widgetsChoice" style="@style/SettingsListItem" />
+                    <TextView
+                        android:id="@+id/headlineStripChoice"
+                        style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/headerBoldChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/headerDateTopChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetLayoutChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetTapChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/popupBlurChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetToggleWeather" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetHeightWeather" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetWidthWeather" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetToggleSystem" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetHeightSystem" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetWidthSystem" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetToggleAir" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetHeightAir" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetWidthAir" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetToggleCalendar" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetHeightCalendar" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetWidthCalendar" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetTogglePrices" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetHeightPrices" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/widgetWidthPrices" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/menuInputsChoice" style="@style/SettingsListItem" />
                 </LinearLayout>
 
@@ -84,11 +108,6 @@
                     <TextView android:id="@+id/screensaverStyleChoice" style="@style/SettingsListItem" />
                 </LinearLayout>
 
-                <TextView style="@style/SettingsSheetLabel" android:text="@string/settings_group_you" />
-                <LinearLayout style="@style/SettingsSheetGroup">
-                    <TextView android:id="@+id/nameChoice" style="@style/SettingsListItem" />
-                </LinearLayout>
-
                 <TextView style="@style/SettingsSheetLabel" android:text="@string/settings_group_motion" />
                 <LinearLayout style="@style/SettingsSheetGroup">
                     <TextView android:id="@+id/animationsChoice" style="@style/SettingsListItem" />
@@ -99,9 +118,11 @@
                 <LinearLayout style="@style/SettingsSheetGroup">
                     <TextView android:id="@+id/tvSettingsChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/defaultInfo" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/bootAppChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/stockInfo" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/updateChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/rebootChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/resetChoice" style="@style/SettingsListItem" />
                 </LinearLayout>
 
                 <TextView style="@style/SettingsSheetLabel" android:text="@string/settings_group_about" />

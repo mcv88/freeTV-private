@@ -99,6 +99,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
     private static final String COLUMNS_SETTING = "columns";
+    /** How the detail popup covers Home (Launcher settings): blur it all, dim only, or nothing. */
+    static final String POPUP_BLUR_KEY = "popup_blur";
+    static final String HEADLINE_STRIP_KEY = "headline_strip";
+    static final String HEADER_BOLD_KEY = "header_bold";
+    static final String HEADER_DATE_TOP_KEY = "header_date_top";
+    static final String POPUP_BLUR_ALL = "all";
+    static final String POPUP_BLUR_DIM = "dim";
+    static final String POPUP_BLUR_OFF = "off";
     private SharedPreferences settingsPreferences;
     private Config homeConfig;
     private final SharedPreferences.OnSharedPreferenceChangeListener liveSettings = (preferences, key) -> {
@@ -139,7 +147,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean heroShown;
     private boolean animations;
     private boolean advancedEffects;
-    private TextView greeting;
+    private TextView headlineStrip;
+    private List<String> headlines = new ArrayList<>();
+    private List<String> matches = new ArrayList<>();
+    private List<String> espn = new ArrayList<>();
+    private List<String> headlineItems = new ArrayList<>();
+    private int headlineIndex;
     private View btnInputs;
     private TextView btnSleepTimer;
     private PopupWindow inputsPopup;
@@ -149,8 +162,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
     private boolean shamsi;
-    /** greeting_name: said after the greeting, which is shown in capitals. */
-    private String greetingName = "";
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
     private String vpnApp;
@@ -181,7 +192,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private DiyaDrawable diya;
     private BellDrawable bell;
     private MarigoldDrawable marigold;
-    private int greetingColor;
     /** The day the petal shower last played, so it greets the first Home of each day only. */
     private static LocalDate lastPetalShower;
     /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
@@ -196,6 +206,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean rebuildOnResume = true;
     /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
     private PopupWindow openPopup;
+    private View detailScrim;
     /** Reorder mode is on (top-bar button). */
     private boolean reordering;
     /** Key of the tile being carried in reorder mode, or null. */
@@ -235,6 +246,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView editBarTitle, editBarHint;
     /** The widgets between the header and the dock; shown only with the dock layout. */
     private WidgetShelf widgets;
+    private View shelfView;
+    private String shelfLayout;
     private FocusIndicator focusIndicator;
     /** The clock's divider line, tinted with the scheme. */
     private View clockDivider;
@@ -305,12 +318,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final Runnable minuteTick = new Runnable() {
         @Override
         public void run() {
-            updateGreeting();
             updateWifiLabel();
             sky.update();
             wallpaperPlayer.update();
             if (widgets != null) widgets.tick();
             handler.postDelayed(this, MINUTE_MS);
+        }
+    };
+    private final Runnable headlineTick = new Runnable() {
+        @Override
+        public void run() {
+            if (rainLine() == null && headlineItems.size() > 1) {
+                headlineIndex = (headlineIndex + 1) % headlineItems.size();
+            }
+            refreshHeadlines();
+            refreshMatches();
+            refreshEspn();
+            refreshHeadline();
+            handler.postDelayed(this, 10_000);
         }
     };
 
@@ -358,14 +383,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName = findViewById(R.id.heroName);
         // dock_title false: the name above the dock never shows; the glow still follows the dock.
         if (!cfg.dockTitle) heroName.setVisibility(View.GONE);
-        greeting = findViewById(R.id.greeting);
-        greetingColor = greeting.getCurrentTextColor();
+        headlineStrip = findViewById(R.id.headlineStrip);
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
         stats = findViewById(R.id.stats);
         showStats = cfg.showStats;
         shamsi = cfg.shamsiDate;
-        greetingName = cfg.greetingName;
         // Compact header: the date short and in the TV's language ("Wed, 21 Oct", "Th 4, 21 thg 10").
         String shortDate = android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEdMMM");
         TextClock dateClock = findViewById(R.id.date);
@@ -485,33 +508,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // The widget shelf shares the grid's frame, so its cards can sit exactly over the dock's columns.
         ViewGroup gridFrame = (ViewGroup) grid.getParent();
-        View shelfView = getLayoutInflater().inflate(R.layout.widget_shelf, gridFrame, false);
-        gridFrame.addView(shelfView);
-        widgets = new WidgetShelf(this, shelfView, animations, reducedMotion, advancedEffects, new WidgetShelf.Host() {
-            @Override
-            public void showMenu(View anchor, List<WidgetShelf.MenuItem> items) {
-                showWidgetMenu(anchor, items);
-            }
+        buildShelf(gridFrame);
 
-            @Override
-            public void slotsChanged() {
-                pointHeaderDown();
-            }
-
-            @Override
-            public void carryChanged() {
-                updateEditBar();
-            }
-
-            @Override
-            public boolean startEditing() {
-                return reordering || beginReorder();
-            }
-        });
-        widgets.setOnDown(column -> {
-            focusTile(Math.min(column, Math.max(0, adapter.dockFilled() - 1)));
-            grid.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
-        });
         grid.getViewTreeObserver().addOnGlobalLayoutListener(() -> widgets.align(grid, COLUMNS,
                 grid.getTop() + grid.getPaddingTop() - (int) (DockDecoration.PADDING_DP * density)));
 
@@ -710,6 +708,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cameBackFromBackground = false;
         Palette.loadDarkMode(this);
         updateWidgets();
+        int wantedColumns = settingsPreferences.getInt(COLUMNS_SETTING, homeConfig.columns);
+        if (wantedColumns != COLUMNS) applyColumns(wantedColumns);
         if (Palette.current() != null && Palette.current() != shownPalette) applyPalette(Palette.current());
         // The shapes start turning once the return transition is over, so they never compete with it.
         if (backdrop != null) handler.postDelayed(startBackdrop, BACKDROP_RESUME_DELAY_MS);
@@ -731,7 +731,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         rebuildOnResume = false;
-        updateGreeting();
+        applyHeaderBold();
+        refreshHeadlines();
+        refreshMatches();
+        refreshEspn();
+        refreshHeadline();
+        handler.postDelayed(headlineTick, 10_000);
         updateWifiLabel();
         updateInputsButton();
         if (showStats) startStats();
@@ -965,6 +970,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.animate().cancel();
         ambient.animate().cancel();
         handler.removeCallbacks(minuteTick);
+        handler.removeCallbacks(headlineTick);
         stopStats();
         if (diya != null) diya.stop();
         cancelPendingFocusScroll();
@@ -1336,8 +1342,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ((TextView) findViewById(R.id.date)).setTextColor(p.onSurfaceVariant);
         ((TextView) findViewById(R.id.shamsiDate)).setTextColor(p.onSurfaceVariant);
         ((TextView) findViewById(R.id.stats)).setTextColor(p.onSurfaceVariant);
-        greetingColor = p.onSurface;
-        if (!festive) greeting.setTextColor(greetingColor);
         heroName.setTextColor(p.onSurface);
         if (clockDivider == null) clockDivider = findViewById(R.id.clockDivider);
         if (clockDivider != null) clockDivider.setBackgroundColor(p.outlineVariant);
@@ -1393,6 +1397,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * exactly as tall as the digits' cap height and standing on that baseline, and the button group
      * centred on the digits. Done with translations, so it never re-enters layout.
      */
+    private void applyHeaderBold() {
+        boolean bold = settingsPreferences.getBoolean(HEADER_BOLD_KEY, false);
+        TextView clock = findViewById(R.id.clock);
+        TextView date = findViewById(R.id.date);
+        clock.setTypeface(getResources().getFont(bold
+                ? R.font.sans_display_bold : R.font.sans_display));
+        date.setTypeface(getResources().getFont(bold
+                ? R.font.sans_medium : R.font.sans_regular));
+    }
+
     private void alignHeader() {
         TextView clock = findViewById(R.id.clock);
         TextView date = findViewById(R.id.date);
@@ -1404,10 +1418,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float cap = -digit.top;
         float clockBaseline = yInRoot(clock) + clock.getBaseline();
 
-        // At a Glance: the greeting-and-date stack centred on the digits, like the header buttons.
         View dateBlock = (View) date.getParent();
-        float stackCentre = yInRoot(dateBlock) + dateBlock.getHeight() / 2f;
-        dateBlock.setTranslationY(clockBaseline - cap / 2f - stackCentre);
+        if (settingsPreferences.getBoolean(HEADER_DATE_TOP_KEY, false)) {
+            Rect dateDigit = new Rect();
+            date.getPaint().getTextBounds("0", 0, 1, dateDigit);
+            float dateGlyphTop = yInRoot(date) + date.getBaseline() + dateDigit.top;
+            dateBlock.setTranslationY(clockBaseline - cap - dateGlyphTop);
+        } else {
+            float stackCentre = yInRoot(dateBlock) + dateBlock.getHeight() / 2f;
+            dateBlock.setTranslationY(clockBaseline - cap / 2f - stackCentre);
+        }
 
         if (divider != null && divider.getHeight() > 0) {
             float top = yInRoot(divider);
@@ -1465,14 +1485,93 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return Motion.DEFAULT_SPATIAL;
     }
 
+    /** Inflates the widget shelf in the arrangement settings asks for, and wires it to the dock. */
+    private void buildShelf(ViewGroup gridFrame) {
+        SharedPreferences settings = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        shelfLayout = WidgetShelf.layoutMode(settings);
+        shelfView = getLayoutInflater().inflate(WidgetShelf.layoutRes(settings), gridFrame, false);
+        gridFrame.addView(shelfView);
+        widgets = new WidgetShelf(this, shelfView, animations, reducedMotion, advancedEffects, new WidgetShelf.Host() {
+            @Override
+            public void showMenu(View anchor, List<WidgetShelf.MenuItem> items) {
+                showWidgetMenu(anchor, items);
+            }
+
+            @Override
+            public void slotsChanged() {
+                pointHeaderDown();
+            }
+
+            @Override
+            public void carryChanged() {
+                updateEditBar();
+            }
+
+            @Override
+            public boolean startEditing() {
+                return reordering || beginReorder();
+            }
+
+            @Override
+            public void showDetail(View anchor, View panel) {
+                PopupWindow popup = glassPopup(panel, (int) (560 * density));
+                coverBehind(popup);
+                skin(panel);
+                panel.measure(View.MeasureSpec.makeMeasureSpec((int) (560 * density),
+                                View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec((int) (root.getHeight() * 0.85f),
+                                View.MeasureSpec.AT_MOST));
+                popup.setHeight(panel.getMeasuredHeight());
+                popup.showAtLocation(root, Gravity.CENTER, 0, 0);
+            }
+        });
+        widgets.setOnDown(column -> {
+            focusTile(Math.min(column, Math.max(0, adapter.dockFilled() - 1)));
+            grid.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
+        });
+        if (shownPalette != null) widgets.setPalette(shownPalette);
+    }
+
+    private void coverBehind(PopupWindow popup) {
+        clearCover();
+        String mode = settingsPreferences.getString(POPUP_BLUR_KEY, POPUP_BLUR_ALL);
+        if (!POPUP_BLUR_OFF.equals(mode)) {
+            detailScrim = new View(this);
+            detailScrim.setBackgroundColor(Color.argb(110, 0, 0, 0));
+            root.addView(detailScrim, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            if (POPUP_BLUR_ALL.equals(mode)) setBlur(root, 14 * density);
+        }
+        popup.setOnDismissListener(() -> {
+            if (openPopup == popup) openPopup = null;
+            clearCover();
+        });
+    }
+
+    private void clearCover() {
+        setBlur(root, 0f);
+        if (detailScrim != null) {
+            root.removeView(detailScrim);
+            detailScrim = null;
+        }
+    }
+
     /**
      * Shows the widget shelf when Launcher settings has it on (and Home has a dock to sit above), and
      * points the header buttons' Down at it or at the grid.
      */
     private void updateWidgets() {
+        SharedPreferences settings = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        if (!WidgetShelf.layoutMode(settings).equals(shelfLayout)) {
+            widgets.stop();
+            ViewGroup frame = (ViewGroup) shelfView.getParent();
+            frame.removeView(shelfView);
+            buildShelf(frame);
+        }
         boolean on = dockRow && getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
                 .getBoolean(WidgetShelf.PREF_KEY, getResources().getBoolean(R.bool.widgets));
         widgets.setEnabled(on);
+        widgets.refreshOrder();
         pointHeaderDown();
         widgets.start();
     }
@@ -2031,27 +2130,88 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     // ---- top bar ---------------------------------------------------------------------------------
 
-    private void updateGreeting() {
-        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        int res;
-        if (hour < 5) res = R.string.good_night;
-        else if (hour < 12) res = R.string.good_morning;
-        else if (hour < 17) res = R.string.good_afternoon;
-        else if (hour < 22) res = R.string.good_evening;
-        else res = R.string.good_night;
-        String festiveGreeting = festive ? festival.greetingText() : "";
-        if (!festiveGreeting.isEmpty()) {
-            greeting.setText(festiveGreeting);
-            greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
-        } else {
-            // The owner's name from Launcher settings, else greeting_name (config.xml or a theme).
-            String name = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
-                    .getString(LauncherSettingsActivity.NAME_KEY, greetingName).trim();
-            greeting.setText(name.isEmpty() ? getString(res)
-                    : getString(R.string.greeting_with_name, getString(res), name));
-            greeting.setTextColor(greetingColor);
+    private void refreshHeadlines() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        if (!headlines.isEmpty() && !NewsFeed.stale(this, System.currentTimeMillis())) return;
+        new Thread(() -> {
+            List<String> fresh = NewsFeed.fetch(this);
+            handler.post(() -> {
+                headlines = fresh;
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            });
+        }).start();
+    }
+
+    private void refreshMatches() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        if (!matches.isEmpty() && !MatchesFeed.stale(this, System.currentTimeMillis())) return;
+        new Thread(() -> {
+            List<String> fresh = MatchesFeed.fetch(this);
+            handler.post(() -> {
+                matches = fresh;
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            });
+        }).start();
+    }
+
+    private void refreshEspn() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        if (!espn.isEmpty() && !EspnFeed.stale(this, System.currentTimeMillis())) return;
+        new Thread(() -> {
+            List<String> fresh = EspnFeed.fetch(this);
+            handler.post(() -> {
+                espn = fresh;
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            });
+        }).start();
+    }
+
+    private void rebuildHeadlineRotation() {
+        List<String> items = new ArrayList<>();
+        for (String line : headlines) if (!items.contains(line)) items.add(line);
+        for (String line : matches) if (!items.contains(line)) items.add(line);
+        for (String line : espn) if (!items.contains(line)) items.add(line);
+        headlineItems = items;
+        if (headlineIndex >= items.size()) headlineIndex = 0;
+    }
+
+    private void refreshHeadline() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) {
+            headlineStrip.setVisibility(View.GONE);
+            return;
         }
-        if (shamsi) shamsiDate.setText(Shamsi.today());
+        String rain = rainLine();
+        if (rain != null) {
+            headlineStrip.setText(rain);
+            headlineStrip.setVisibility(View.VISIBLE);
+            return;
+        }
+        if (headlineItems.isEmpty()) {
+            headlineStrip.setVisibility(View.GONE);
+            return;
+        }
+        headlineStrip.setText(headlineItems.get(headlineIndex % headlineItems.size()));
+        headlineStrip.setVisibility(View.VISIBLE);
+    }
+
+    private String rainLine() {
+        Weather.Report report = Weather.cached(this);
+        if (report == null) return null;
+        long ageMinutes = (System.currentTimeMillis() - report.fetchedAt) / 60_000;
+        if (ageMinutes > 120) return null;
+        if (report.rainInMinutes >= 0) {
+            long startsIn = report.rainInMinutes - ageMinutes;
+            if (startsIn > 0) return getString(R.string.rain_soon_in, (int) startsIn);
+            return null;
+        }
+        if (report.rainStopsInMinutes >= 0) {
+            long stopsIn = report.rainStopsInMinutes - ageMinutes;
+            if (stopsIn > 0) return getString(R.string.rain_stops_in, (int) stopsIn);
+        }
+        return null;
     }
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */

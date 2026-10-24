@@ -10,11 +10,6 @@
     <string name="not_connected">Không có thiết bị</string>
     <string name="live_tv">Truyền hình</string>
     <string name="no_inputs">Không tìm thấy nguồn vào</string>
-    <!-- Vietnamese greets the same way at any hour. -->
-    <string name="good_morning">Xin chào</string>
-    <string name="good_afternoon">Xin chào</string>
-    <string name="good_evening">Xin chào</string>
-    <string name="good_night">Xin chào</string>
     <string name="ethernet">Ethernet</string>
     <string name="offline">Mất mạng</string>
     <string name="not_available">TV này không hỗ trợ</string>
@@ -35,6 +30,8 @@
     <string name="follow_theme">Theo theme (xóa lựa chọn trên TV)</string>
     <string name="follow_theme_hint">Dùng bố cục và hiệu ứng của theme hiện tại hoặc mặc định. Đẩy hoặc đặt lại theme cũng xóa các lựa chọn bạn đã chọn trên TV.</string>
     <string name="tv_settings">Cài đặt hệ thống TV</string>
+    <string name="boot_app">Ứng dụng mở khi bật TV</string>
+    <string name="boot_app_none">Không mở — chỉ màn hình chính</string>
     <string name="quick_picture">Hiển thị</string>
     <string name="quick_sleep_timer_hint">Tìm mục này trong cài đặt TV</string>
     <string name="quick_sleep_timer">Hẹn giờ tắt</string>
@@ -80,10 +77,40 @@
     <string name="card_state_new">Mới</string>
     <string name="card_state_new_key">Khóa mới</string>
     <string name="card_state_new_label">Tên mới</string>
-    <string name="greeting_with_name">%1$s, %2$s</string>
-
     <!-- Home widgets (WidgetShelf) -->
     <string name="widgets">Tiện ích</string>
+    <string name="widget_layout">Bố cục thẻ</string>
+    <string name="widget_tap">Khi bấm vào thẻ</string>
+    <string name="widget_tap_detail">Mở popup chi tiết</string>
+    <string name="widget_tap_classic">Như cũ — lật trang</string>
+    <string name="popup_blur">Nền phía sau popup</string>
+    <string name="popup_blur_all">Làm mờ toàn bộ màn hình chính</string>
+    <string name="popup_blur_dim">Chỉ tối nền, không làm mờ</string>
+    <string name="popup_blur_off">Không làm gì</string>
+    <string name="reset_settings">Khôi phục cài đặt</string>
+    <string name="reset_settings_desc">Đưa mọi thứ về mặc định</string>
+    <string name="reset_settings_message">Số cột, widget, ứng dụng mở khi bật TV, tên và giao diện — tất cả quay về mặc định.</string>
+    <string name="reset_settings_action">Khôi phục</string>
+    <string name="widget_layout_stacked">Dọc</string>
+    <string name="widget_layout_wide">Ngang</string>
+    <string name="widget_card_height">Chiều cao thẻ</string>
+    <string name="widget_width">Chiều ngang</string>
+    <string name="widget_width_tiny">Rất hẹp</string>
+    <string name="widget_width_narrow">Hẹp</string>
+    <string name="widget_width_medium">Vừa</string>
+    <string name="widget_width_wide">Rộng</string>
+    <string name="widget_width_widest">Rất rộng</string>
+    <string name="widget_height_value">%1$ddp</string>
+    <string name="detail_high">Cao nhất</string>
+    <string name="detail_low">Thấp nhất</string>
+    <string name="detail_rain_chance">Khả năng mưa hôm nay</string>
+    <string name="detail_wind">Gió</string>
+    <string name="detail_tomorrow">Ngày mai</string>
+    <string name="detail_forecast">Dự báo 5 ngày tới</string>
+    <string name="detail_upcoming">Sự kiện sắp tới</string>
+    <string name="detail_solar">Dương lịch</string>
+    <string name="detail_sources_prices">Nguồn: vang.today · Petrolimex vùng 1 · Vietcombank</string>
+    <string name="detail_no_data">Chưa có dữ liệu — thử lại sau ít phút</string>
     <string name="weather">Thời tiết</string>
     <string name="widget_system">Thiết bị</string>
     <string name="widget_ram">RAM</string>
@@ -103,6 +130,13 @@
     <string name="holiday_mid_autumn">Tết Trung thu</string>
     <string name="holiday_national_day">Quốc khánh</string>
     <string name="holiday_christmas">Giáng sinh</string>
+    <string name="holiday_teachers">Ngày Nhà giáo VN</string>
+    <string name="holiday_womens_day">Ngày Phụ nữ Việt Nam</string>
+    <string name="holiday_full_moon">Rằm tháng %1$d</string>
+    <string name="lunar_month">Tháng %1$d</string>
+    <string name="badge_today">Hôm nay</string>
+    <string name="badge_tomorrow">Ngày mai</string>
+    <string name="badge_in_days">còn %1$d ngày</string>
     <string name="weather_clear">Trời quang</string>
     <string name="weather_partly">Ít mây</string>
     <string name="weather_cloudy">Nhiều mây</string>
@@ -117,7 +151,6 @@
     <string name="weather_tomorrow">%s ngày mai</string>
     <string name="weather_tomorrow_detail">Thấp nhất %1$d°, mưa %2$d%%</string>
     <string name="weather_offline">Không lấy được thời tiết</string>
-    <string name="widget_add">Thêm widget</string>
     <string name="widget_remove">Gỡ widget</string>
 
     <!-- Edit Home (apps, dock and widgets) -->
@@ -134,9 +167,51 @@
     <!-- Air quality widget -->
     <string name="air_quality">Không khí</string>
     <string name="air_tomorrow">%s ngày mai</string>
-    <string name="air_detail">%1$s, PM2.5 %2$d</string>
+    <string name="air_detail">%1$s, PM2.5 %2$d µg/m³</string>
     <string name="air_detail_tomorrow">%s lúc tệ nhất</string>
     <string name="air_offline">Không lấy được chỉ số không khí</string>
+
+    <!-- Weather card details -->
+    <string name="weather_high_low">Cao %1$d° · Thấp %2$d°</string>
+    <string name="chip_rain">Mưa</string>
+    <string name="chip_humidity">Độ ẩm</string>
+    <string name="chip_aqi">AQI</string>
+    <string name="chip_uv">UV</string>
+    <string name="uv_low">Thấp</string>
+    <string name="uv_moderate">Trung bình</string>
+    <string name="uv_high">Cao</string>
+    <string name="uv_very_high">Rất cao</string>
+    <string name="uv_extreme">Cực cao</string>
+
+    <!-- Prices widget -->
+    <string name="prices">Giá cả</string>
+    <string name="prices_updated">Cập nhật %s</string>
+    <string name="rain_soon_in">Khoảng %1$d phút nữa sẽ mưa</string>
+    <string name="rain_stops_in">Đang mưa — khoảng %1$d phút nữa tạnh</string>
+    <string name="rain_none">Hai giờ tới không có mưa</string>
+    <string name="headline_match_prefix">Tối nay</string>
+    <string name="headline_match_live">Đang đá</string>
+    <string name="headline_match_finished">Hết giờ</string>
+    <string name="header_bold">Chữ ngày giờ đậm</string>
+    <string name="header_bold_desc">Nét chữ đậm hơn cho giờ và dòng thứ ngày</string>
+    <string name="header_date_top">Ngày ngang đỉnh giờ</string>
+    <string name="header_date_top_desc">Đưa dòng thứ ngày lên ngang đỉnh số giờ thay vì ở giữa</string>
+    <string name="widget_section_desc">Thẻ, bố cục, thao tác chạm và kích thước thẻ</string>
+    <string name="headline_strip">Dải tin đầu trang</string>
+    <string name="headline_strip_desc">Cảnh báo mưa, tin nóng và trận tối nay ở đầu trang</string>
+    <string name="prices_gold">Vàng · triệu đ/lượng</string>
+    <string name="prices_buy">Mua</string>
+    <string name="prices_sell">Bán</string>
+    <string name="prices_gold_bar">Vàng miếng SJC</string>
+    <string name="prices_gold_ring">Vàng nhẫn 9999</string>
+    <string name="prices_fuel">Xăng dầu · đ/lít</string>
+    <string name="prices_region1">Vùng 1</string>
+    <string name="prices_fuel_ron95">Xăng E10 RON 95-III</string>
+    <string name="prices_fuel_e5">Xăng E5 RON 92</string>
+    <string name="prices_fuel_diesel">Dầu DO 0,05S</string>
+    <string name="prices_usd">USD/VND (VCB)</string>
+    <string name="prices_offline">Không lấy được giá</string>
+    <string name="prices_refresh">Làm mới</string>
     <string name="aqi_good">Tốt</string>
     <string name="aqi_moderate">Trung bình</string>
     <string name="aqi_sensitive">Kém</string>
@@ -159,7 +234,6 @@
 
     <!-- Greeting name (Launcher settings) -->
     <string name="settings_group_home">Màn hình chính</string>
-    <string name="settings_group_you">Cá nhân</string>
     <string name="settings_group_motion">Chuyển động</string>
     <string name="settings_group_system">Hệ thống</string>
     <string name="settings_group_about">Thông tin</string>
@@ -171,8 +245,6 @@
     <string name="about_stock_off">Đã tắt</string>
     <string name="about_stock_on">Đang bật</string>
     <string name="about_stock_none">Không có trên TV này</string>
-    <string name="your_name">Tên của bạn</string>
-    <string name="your_name_none">Chưa đặt</string>
     <string name="save">Lưu</string>
 
     <!-- Wi-Fi menu (hold OK on the Wi-Fi pill) -->
@@ -209,7 +281,7 @@
     <string name="running_stop_all">Dừng tất cả</string>
     <string name="try_again">Thử lại</string>
     <string name="animations_desc">Tắt để focus chuyển ngay, nhẹ nhất cho TV yếu</string>
-    <string name="widgets_desc">Thời tiết, chất lượng không khí, lịch âm và thông số máy</string>
+    <string name="widgets_desc">Thời tiết, chất lượng không khí, lịch âm, giá cả và thông số máy</string>
     <string name="reboot">Tùy chọn khởi động</string>
     <string name="reboot_desc">Cần bật gỡ lỗi qua mạng</string>
     <string name="reboot_action">Khởi động lại</string>

@@ -141,19 +141,8 @@
                     android:layout_marginStart="24dp"
                     android:orientation="vertical">
 
-                    <!-- At a Glance: the greeting and the date stacked beside the clock, centred on its
+                    <!-- At a Glance: the date stacked beside the clock, centred on its
                          digits (MainActivity.alignHeader). -->
-                    <TextView
-                        android:id="@+id/greeting"
-                        android:gravity="left"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:singleLine="true"
-                        android:ellipsize="end"
-                                                    android:textColor="#8CFFFFFF"
-                        android:textSize="20sp"
-                        android:fontFamily="@font/sans_medium"
-                        android:letterSpacing="0.01" />
 
                     <!-- Shamsi date ("27 Mehr 1405"), shown when shamsi_date is on. -->
                     <TextView
@@ -191,12 +180,30 @@
 
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/headlineStrip"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/leftBlock"
+            android:layout_alignStart="@id/leftBlock"
+            android:layout_alignEnd="@id/leftBlock"
+            android:layout_marginTop="2dp"
+            android:gravity="center"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="#FFFFFFFF"
+            android:textSize="18sp"
+            android:fontFamily="@font/sans_medium"
+            android:letterSpacing="0.02"
+            android:focusable="false"
+            android:visibility="gone" />
+
         <!-- Shown only when show_stats is on. Outside leftBlock, so the top buttons stay level with the clock
              row; gone, it takes no space. -->
         <TextView
             android:id="@+id/stats"
             android:layout_width="0dp"
-            android:layout_below="@id/leftBlock"
+            android:layout_below="@id/headlineStrip"
             android:layout_alignStart="@id/leftBlock"
             android:layout_alignEnd="@id/leftBlock"
             android:gravity="left"

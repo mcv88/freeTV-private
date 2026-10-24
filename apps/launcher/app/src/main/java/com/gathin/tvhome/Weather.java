@@ -30,6 +30,18 @@ final class Weather {
     private static final int TIMEOUT_MS = 8000;
     private static final String PREFS = "weather";
 
+    /** One forecast day: the high and low in °C and the WMO code. */
+    static final class Day {
+        final double high, low;
+        final int code;
+
+        Day(double high, double low, int code) {
+            this.high = high;
+            this.low = low;
+            this.code = code;
+        }
+    }
+
     /** One report: where, the temperature now and today's range in °C, the WMO code, day or night. */
     static final class Report {
         final String place;
@@ -42,10 +54,18 @@ final class Weather {
         /** Tomorrow: the high and low, the sky and the chance of rain (%). */
         final double tomorrowHigh, tomorrowLow;
         final int tomorrowCode, tomorrowRain;
+        /** Rain soon, from the 15-minute slots: minutes until it starts (dry now) or stops
+         *  (raining now), each -1 when it does not happen within two hours. */
+        final int rainInMinutes, rainStopsInMinutes;
+        /** Today: the chance of rain (%) and the peak UV index; then the five days after today. */
+        final int todayRain;
+        final double uv;
+        final Day[] days;
         final long fetchedAt;
 
         Report(String place, double temp, double high, double low, int code, boolean day, double feels, int humidity,
-               double wind, double tomorrowHigh, double tomorrowLow, int tomorrowCode, int tomorrowRain, long fetchedAt) {
+               double wind, double tomorrowHigh, double tomorrowLow, int tomorrowCode, int tomorrowRain,
+               int todayRain, double uv, int rainInMinutes, int rainStopsInMinutes, Day[] days, long fetchedAt) {
             this.place = place;
             this.temp = temp;
             this.high = high;
@@ -59,12 +79,26 @@ final class Weather {
             this.tomorrowLow = tomorrowLow;
             this.tomorrowCode = tomorrowCode;
             this.tomorrowRain = tomorrowRain;
+            this.rainInMinutes = rainInMinutes;
+            this.rainStopsInMinutes = rainStopsInMinutes;
+            this.todayRain = todayRain;
+            this.uv = uv;
+            this.days = days;
             this.fetchedAt = fetchedAt;
         }
 
         boolean stale(long now) {
             return now - fetchedAt > STALE_MS;
         }
+    }
+
+    /** The UV band's name, by the WHO scale. */
+    static int uvLabel(double uv) {
+        if (uv < 3) return R.string.uv_low;
+        if (uv < 6) return R.string.uv_moderate;
+        if (uv < 8) return R.string.uv_high;
+        if (uv < 11) return R.string.uv_very_high;
+        return R.string.uv_extreme;
     }
 
     private Weather() {
@@ -110,11 +144,31 @@ final class Weather {
         SharedPreferences p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         if (!p.contains("fetched")) return null;
         // A report saved before the details and tomorrow were kept counts as stale, so it is fetched again.
-        long fetched = p.contains("t_code") ? p.getLong("fetched", 0) : 0;
+        // So does one saved before the five days and the UV were kept.
+        long fetched = p.contains("t_code") && p.contains("f_codes") ? p.getLong("fetched", 0) : 0;
         return new Report(p.getString("place", ""), p.getFloat("temp", 0), p.getFloat("high", 0), p.getFloat("low", 0),
                 p.getInt("code", 0), p.getBoolean("day", true), p.getFloat("feels", 0), p.getInt("humidity", 0),
                 p.getFloat("wind", 0), p.getFloat("t_high", 0), p.getFloat("t_low", 0), p.getInt("t_code", 0),
-                p.getInt("t_rain", 0), fetched);
+                p.getInt("t_rain", 0), p.getInt("rain0", 0), p.getFloat("uv", 0),
+                p.getInt("rain_in", -1), p.getInt("rain_stops", -1), savedDays(p), fetched);
+    }
+
+    /** The five saved days, from their comma separated codes and ranges; empty when unreadable. */
+    private static Day[] savedDays(SharedPreferences p) {
+        String codes = p.getString("f_codes", ""), highs = p.getString("f_highs", ""),
+                lows = p.getString("f_lows", "");
+        String[] codeParts = codes.split(","), highParts = highs.split(","), lowParts = lows.split(",");
+        if (codeParts.length != 5 || highParts.length != 5 || lowParts.length != 5) return new Day[0];
+        Day[] days = new Day[5];
+        try {
+            for (int i = 0; i < 5; i++) {
+                days[i] = new Day(Double.parseDouble(highParts[i]), Double.parseDouble(lowParts[i]),
+                        Integer.parseInt(codeParts[i]));
+            }
+        } catch (NumberFormatException e) {
+            return new Day[0];
+        }
+        return days;
     }
 
     /** Where the widgets report on: a name and coordinates. */
@@ -159,24 +213,93 @@ final class Weather {
         JSONObject f = get(String.format(Locale.US,
                 "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f"
                         + "&current=temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m"
-                        + "&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max"
-                        + "&timezone=auto&forecast_days=2",
+                        + "&minutely_15=precipitation"
+                        + "&daily=temperature_2m_max,temperature_2m_min,weather_code"
+                        + ",precipitation_probability_max,uv_index_max"
+                        + "&timezone=auto&forecast_days=6",
                 at.lat, at.lon));
         JSONObject current = f.getJSONObject("current");
         JSONObject daily = f.getJSONObject("daily");
         JSONArray max = daily.getJSONArray("temperature_2m_max"), min = daily.getJSONArray("temperature_2m_min");
         JSONArray codes = daily.getJSONArray("weather_code"), rain = daily.getJSONArray("precipitation_probability_max");
+        JSONArray uvMax = daily.getJSONArray("uv_index_max");
+        Day[] days = new Day[5];
+        for (int i = 0; i < days.length; i++) {
+            days[i] = new Day(max.getDouble(i + 1), min.getDouble(i + 1), codes.getInt(i + 1));
+        }
+        int[] soon = rainSoon(rainSlots(f, current.optString("time", "")));
         Report r = new Report(place, current.getDouble("temperature_2m"), max.getDouble(0), min.getDouble(0),
                 current.getInt("weather_code"), current.optInt("is_day", 1) == 1,
                 current.optDouble("apparent_temperature", current.getDouble("temperature_2m")),
                 current.optInt("relative_humidity_2m", 0), current.optDouble("wind_speed_10m", 0),
-                max.getDouble(1), min.getDouble(1), codes.getInt(1), rain.isNull(1) ? 0 : rain.getInt(1), now);
+                max.getDouble(1), min.getDouble(1), codes.getInt(1), rain.isNull(1) ? 0 : rain.getInt(1),
+                rain.isNull(0) ? 0 : rain.getInt(0), uvMax.isNull(0) ? 0 : uvMax.getDouble(0),
+                soon[0], soon[1], days, now);
+        StringBuilder fCodes = new StringBuilder(), fHighs = new StringBuilder(), fLows = new StringBuilder();
+        for (Day d : days) {
+            if (fCodes.length() > 0) {
+                fCodes.append(',');
+                fHighs.append(',');
+                fLows.append(',');
+            }
+            fCodes.append(d.code);
+            fHighs.append(d.high);
+            fLows.append(d.low);
+        }
         p.edit().putString("place", r.place).putFloat("temp", (float) r.temp).putFloat("high", (float) r.high)
                 .putFloat("low", (float) r.low).putInt("code", r.code).putBoolean("day", r.day)
                 .putFloat("feels", (float) r.feels).putInt("humidity", r.humidity).putFloat("wind", (float) r.wind)
                 .putFloat("t_high", (float) r.tomorrowHigh).putFloat("t_low", (float) r.tomorrowLow)
-                .putInt("t_code", r.tomorrowCode).putInt("t_rain", r.tomorrowRain).putLong("fetched", now).apply();
+                .putInt("t_code", r.tomorrowCode).putInt("t_rain", r.tomorrowRain).putInt("rain0", r.todayRain)
+                .putFloat("uv", (float) r.uv).putInt("rain_in", r.rainInMinutes)
+                .putInt("rain_stops", r.rainStopsInMinutes).putString("f_codes", fCodes.toString())
+                .putString("f_highs", fHighs.toString()).putString("f_lows", fLows.toString())
+                .putLong("fetched", now).apply();
         return r;
+    }
+
+    /** The next nine 15-minute precipitation slots (mm), starting with the one covering now. */
+    private static double[] rainSlots(JSONObject forecast, String now) throws JSONException {
+        double[] slots = new double[9];
+        JSONObject minutely = forecast.optJSONObject("minutely_15");
+        if (minutely == null) return slots;
+        JSONArray times = minutely.optJSONArray("time"), amounts = minutely.optJSONArray("precipitation");
+        if (times == null || amounts == null) return slots;
+        int start = -1;
+        for (int i = 0; i < times.length(); i++) {
+            if (times.optString(i, "").compareTo(now) <= 0) start = i;
+            else break;
+        }
+        if (start < 0) return slots;
+        for (int i = 0; i < slots.length && start + i < amounts.length(); i++) {
+            slots[i] = amounts.optDouble(start + i, 0);
+        }
+        return slots;
+    }
+
+    /**
+     * When the rain turns, from the slots {@link #rainSlots} returns: {starts in, stops in}
+     * minutes, each -1 when it does not happen within the two hours the slots cover. Raining
+     * now means the current slot holds at least 0.1 mm.
+     */
+    static int[] rainSoon(double[] slots) {
+        int starts = -1, stops = -1;
+        if (slots.length > 0 && slots[0] >= 0.1) {
+            for (int i = 1; i < slots.length; i++) {
+                if (slots[i] < 0.1) {
+                    stops = i * 15;
+                    break;
+                }
+            }
+        } else {
+            for (int i = 1; i < slots.length; i++) {
+                if (slots[i] >= 0.1) {
+                    starts = i * 15;
+                    break;
+                }
+            }
+        }
+        return new int[]{starts, stops};
     }
 
     /** The IP's city and coordinates; the name in the TV's language when the geocoder knows it. */
