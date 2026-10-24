@@ -43,3 +43,4 @@ jobs:
     uses: ./.github/workflows/launcher.yml
     with:
       changed: ${{ needs.affected.outputs.launcher == 'true' }}
+    secrets: inherit
