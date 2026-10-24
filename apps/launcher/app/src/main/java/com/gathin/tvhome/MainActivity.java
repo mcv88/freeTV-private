@@ -101,6 +101,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private static final String COLUMNS_SETTING = "columns";
     /** How the detail popup covers Home (Launcher settings): blur it all, dim only, or nothing. */
     static final String POPUP_BLUR_KEY = "popup_blur";
+    static final String HEADLINE_STRIP_KEY = "headline_strip";
     static final String POPUP_BLUR_ALL = "all";
     static final String POPUP_BLUR_DIM = "dim";
     static final String POPUP_BLUR_OFF = "off";
@@ -145,6 +146,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean animations;
     private boolean advancedEffects;
     private TextView greeting;
+    private TextView headlineStrip;
+    private List<String> headlines = new ArrayList<>();
+    private List<String> matches = new ArrayList<>();
+    private List<String> headlineItems = new ArrayList<>();
+    private int headlineIndex;
     private View btnInputs;
     private TextView btnSleepTimer;
     private PopupWindow inputsPopup;
@@ -321,6 +327,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             handler.postDelayed(this, MINUTE_MS);
         }
     };
+    private final Runnable headlineTick = new Runnable() {
+        @Override
+        public void run() {
+            if (rainLine() == null && headlineItems.size() > 1) {
+                headlineIndex = (headlineIndex + 1) % headlineItems.size();
+            }
+            refreshHeadline();
+            handler.postDelayed(this, 10_000);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -367,6 +383,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // dock_title false: the name above the dock never shows; the glow still follows the dock.
         if (!cfg.dockTitle) heroName.setVisibility(View.GONE);
         greeting = findViewById(R.id.greeting);
+        headlineStrip = findViewById(R.id.headlineStrip);
         greetingColor = greeting.getCurrentTextColor();
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
@@ -717,6 +734,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         rebuildOnResume = false;
         updateGreeting();
+        refreshHeadlines();
+        refreshMatches();
+        refreshHeadline();
+        handler.postDelayed(headlineTick, 10_000);
         updateWifiLabel();
         updateInputsButton();
         if (showStats) startStats();
@@ -950,6 +971,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.animate().cancel();
         ambient.animate().cancel();
         handler.removeCallbacks(minuteTick);
+        handler.removeCallbacks(headlineTick);
         stopStats();
         if (diya != null) diya.stop();
         cancelPendingFocusScroll();
@@ -2094,6 +2116,76 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     // ---- top bar ---------------------------------------------------------------------------------
+
+    private void refreshHeadlines() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        if (!headlines.isEmpty() && !NewsFeed.stale(this, System.currentTimeMillis())) return;
+        new Thread(() -> {
+            List<String> fresh = NewsFeed.fetch(this);
+            handler.post(() -> {
+                headlines = fresh;
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            });
+        }).start();
+    }
+
+    private void refreshMatches() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        if (!matches.isEmpty() && !MatchesFeed.stale(this, System.currentTimeMillis())) return;
+        new Thread(() -> {
+            List<String> fresh = MatchesFeed.fetch(this);
+            handler.post(() -> {
+                matches = fresh;
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            });
+        }).start();
+    }
+
+    private void rebuildHeadlineRotation() {
+        List<String> items = new ArrayList<>();
+        items.addAll(headlines);
+        items.addAll(matches);
+        headlineItems = items;
+        if (headlineIndex >= items.size()) headlineIndex = 0;
+    }
+
+    private void refreshHeadline() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) {
+            headlineStrip.setVisibility(View.GONE);
+            return;
+        }
+        String rain = rainLine();
+        if (rain != null) {
+            headlineStrip.setText(rain);
+            headlineStrip.setVisibility(View.VISIBLE);
+            return;
+        }
+        if (headlineItems.isEmpty()) {
+            headlineStrip.setVisibility(View.GONE);
+            return;
+        }
+        headlineStrip.setText(headlineItems.get(headlineIndex % headlineItems.size()));
+        headlineStrip.setVisibility(View.VISIBLE);
+    }
+
+    private String rainLine() {
+        Weather.Report report = Weather.cached(this);
+        if (report == null) return null;
+        long ageMinutes = (System.currentTimeMillis() - report.fetchedAt) / 60_000;
+        if (ageMinutes > 120) return null;
+        if (report.rainInMinutes >= 0) {
+            long startsIn = report.rainInMinutes - ageMinutes;
+            if (startsIn > 0) return getString(R.string.rain_soon_in, (int) startsIn);
+            return null;
+        }
+        if (report.rainStopsInMinutes >= 0) {
+            long stopsIn = report.rainStopsInMinutes - ageMinutes;
+            if (stopsIn > 0) return getString(R.string.rain_stops_in, (int) stopsIn);
+        }
+        return null;
+    }
 
     private void updateGreeting() {
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);

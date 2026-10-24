@@ -191,6 +191,22 @@
 
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/headlineStrip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
+            android:maxWidth="400dp"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="#D9FFFFFF"
+            android:textSize="16sp"
+            android:fontFamily="@font/sans_regular"
+            android:letterSpacing="0.02"
+            android:focusable="false"
+            android:visibility="gone" />
+
         <!-- Shown only when show_stats is on. Outside leftBlock, so the top buttons stay level with the clock
              row; gone, it takes no space. -->
         <TextView

@@ -196,6 +196,10 @@
     <string name="rain_soon_in">Khoảng %1$d phút nữa sẽ mưa</string>
     <string name="rain_stops_in">Đang mưa — khoảng %1$d phút nữa tạnh</string>
     <string name="rain_none">Hai giờ tới không có mưa</string>
+    <string name="headline_match_prefix">Tối nay</string>
+    <string name="headline_match_live">Đang đá</string>
+    <string name="headline_strip">Dải tin đầu trang</string>
+    <string name="headline_strip_desc">Cảnh báo mưa, tin nóng và trận tối nay ở đầu trang</string>
     <string name="prices_gold">Vàng · triệu đ/lượng</string>
     <string name="prices_buy">Mua</string>
     <string name="prices_sell">Bán</string>

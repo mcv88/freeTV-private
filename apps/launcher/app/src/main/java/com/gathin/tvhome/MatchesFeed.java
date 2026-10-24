@@ -1,0 +1,110 @@
+package com.gathin.tvhome;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+final class MatchesFeed {
+
+    private static final String PAGE_URL =
+            "https://www.24h.com.vn/v-league-cuoc-dua-nong-bong-c48e3408.html";
+    private static final String LINES_KEY = "matches_lines", AT_KEY = "matches_at";
+    private static final int MAX_MATCHES = 6;
+    private static final long FRESH_MS = 30 * 60 * 1000;
+    private static final Pattern FIXTURE = Pattern.compile(
+            "^(.+?)\\s+vs\\s+(.+?)$\\s*^(\\d{2}/\\d{2}/\\d{2})\\s+-\\s+"
+                    + "(Trực tiếp|\\d{2}:\\d{2})$",
+            Pattern.MULTILINE);
+    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd/MM/yy");
+
+    private MatchesFeed() {
+    }
+
+    private static SharedPreferences prefs(Context context) {
+        return context.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
+    }
+
+    static List<String> cached(Context context) {
+        String text = prefs(context).getString(LINES_KEY, "");
+        List<String> lines = new ArrayList<>();
+        if (text.isEmpty()) return lines;
+        for (String line : text.split("\n")) {
+            if (!line.isEmpty()) lines.add(line);
+        }
+        return lines;
+    }
+
+    static boolean stale(Context context, long now) {
+        return now - prefs(context).getLong(AT_KEY, 0) > FRESH_MS;
+    }
+
+    static List<String> fetch(Context context) {
+        List<String> lines = parse(context, download());
+        if (lines == null) return cached(context);
+        prefs(context).edit().putString(LINES_KEY, String.join("\n", lines))
+                .putLong(AT_KEY, System.currentTimeMillis()).apply();
+        return lines;
+    }
+
+    private static String download() {
+        HttpURLConnection http = null;
+        try {
+            http = (HttpURLConnection) new URL(PAGE_URL).openConnection();
+            http.setConnectTimeout(10_000);
+            http.setReadTimeout(10_000);
+            StringBuilder out = new StringBuilder();
+            try (InputStream in = http.getInputStream();
+                 BufferedReader reader = new BufferedReader(
+                         new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) out.append(line).append('\n');
+            }
+            return out.toString();
+        } catch (Exception e) {
+            return null;
+        } finally {
+            if (http != null) http.disconnect();
+        }
+    }
+
+    private static List<String> parse(Context context, String html) {
+        if (html == null) return null;
+        String text = html.replaceAll("<[^>]*>", "\n");
+        String today = LocalDate.now().format(DAY);
+        int nowMinutes = LocalTime.now().getHour() * 60 + LocalTime.now().getMinute();
+        List<String> lines = new ArrayList<>();
+        Matcher matcher = FIXTURE.matcher(text);
+        while (matcher.find() && lines.size() < MAX_MATCHES) {
+            if (!matcher.group(3).equals(today)) continue;
+            String home = matcher.group(1).trim();
+            String away = matcher.group(2).trim();
+            String when = matcher.group(4);
+            String line;
+            if (when.equals("Trực tiếp")) {
+                line = context.getString(R.string.headline_match_live)
+                        + " " + home + " - " + away;
+            } else {
+                int hour = Integer.parseInt(when.substring(0, 2));
+                int minute = Integer.parseInt(when.substring(3, 5));
+                if (hour * 60 + minute < nowMinutes) continue;
+                line = context.getString(R.string.headline_match_prefix)
+                        + " " + when + " " + home + " - " + away;
+            }
+            if (!lines.contains(line)) lines.add(line);
+        }
+        return lines;
+    }
+}

@@ -1,0 +1,88 @@
+package com.gathin.tvhome;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserFactory;
+
+final class NewsFeed {
+
+    private static final String FEED_URL = "https://vnexpress.net/rss/tin-moi-nhat.rss";
+    private static final String TITLES_KEY = "news_titles", AT_KEY = "news_at";
+    private static final int MAX_TITLES = 8;
+    private static final long FRESH_MS = 30 * 60 * 1000;
+
+    private NewsFeed() {
+    }
+
+    private static SharedPreferences prefs(Context context) {
+        return context.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
+    }
+
+    static List<String> cached(Context context) {
+        String text = prefs(context).getString(TITLES_KEY, "");
+        List<String> titles = new ArrayList<>();
+        if (text.isEmpty()) return titles;
+        for (String title : text.split("\n")) {
+            if (!title.isEmpty()) titles.add(title);
+        }
+        return titles;
+    }
+
+    static boolean stale(Context context, long now) {
+        return now - prefs(context).getLong(AT_KEY, 0) > FRESH_MS;
+    }
+
+    static List<String> fetch(Context context) {
+        List<String> titles = download();
+        if (titles == null) return cached(context);
+        prefs(context).edit().putString(TITLES_KEY, String.join("\n", titles))
+                .putLong(AT_KEY, System.currentTimeMillis()).apply();
+        return titles;
+    }
+
+    private static List<String> download() {
+        HttpURLConnection http = null;
+        try {
+            http = (HttpURLConnection) new URL(FEED_URL).openConnection();
+            http.setConnectTimeout(10_000);
+            http.setReadTimeout(10_000);
+            try (InputStream in = http.getInputStream()) {
+                return parse(in);
+            }
+        } catch (Exception e) {
+            return null;
+        } finally {
+            if (http != null) http.disconnect();
+        }
+    }
+
+    private static List<String> parse(InputStream in) throws Exception {
+        XmlPullParser parser = XmlPullParserFactory.newInstance().newPullParser();
+        parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+        parser.setInput(in, "UTF-8");
+        List<String> titles = new ArrayList<>();
+        boolean inItem = false;
+        int event = parser.getEventType();
+        while (event != XmlPullParser.END_DOCUMENT) {
+            if (event == XmlPullParser.START_TAG && parser.getName().equals("item")) {
+                inItem = true;
+            } else if (event == XmlPullParser.END_TAG && parser.getName().equals("item")) {
+                inItem = false;
+            } else if (event == XmlPullParser.START_TAG && inItem
+                    && parser.getName().equals("title")) {
+                String title = parser.nextText().replace('\n', ' ').trim();
+                if (!title.isEmpty() && titles.size() < MAX_TITLES) titles.add(title);
+            }
+            event = parser.next();
+        }
+        return titles;
+    }
+}

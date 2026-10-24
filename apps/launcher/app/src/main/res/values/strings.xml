@@ -217,6 +217,10 @@
     <string name="rain_soon_in">Rain in about %1$d minutes</string>
     <string name="rain_stops_in">Raining now — stops in about %1$d minutes</string>
     <string name="rain_none">No rain in the next two hours</string>
+    <string name="headline_match_prefix">Tonight</string>
+    <string name="headline_match_live">Live now</string>
+    <string name="headline_strip">Headline strip</string>
+    <string name="headline_strip_desc">Rain alerts, hot news, matches tonight, in the header</string>
     <string name="prices_gold">Gold · ₫m/tael</string>
     <string name="prices_buy">Buy</string>
     <string name="prices_sell">Sell</string>
