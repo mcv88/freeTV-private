@@ -749,7 +749,7 @@ final class WidgetShelf {
         showChoices(anchor, names, selected, i -> {
             prefs.edit().putString(CITY_KEY, CITY_QUERIES[i]).apply();
             if (has(WEATHER)) refreshWeather(true);
-            if (has(AIR)) refreshAir(true);
+            if (has(AIR) || has(WEATHER)) refreshAir(true);
         });
     }
 
@@ -881,7 +881,7 @@ final class WidgetShelf {
             main.postDelayed(cpuTick, CPU_MS);
         }
         if (has(WEATHER)) refreshWeather(false);
-        if (has(AIR)) refreshAir(false);
+        if (has(AIR) || has(WEATHER)) refreshAir(false);
         if (has(PRICES)) refreshPrices(false);
     }
 
@@ -898,7 +898,7 @@ final class WidgetShelf {
         if (has(CALENDAR)) refreshHolidays(false);
         if (has(SYSTEM)) paintSystem();
         if (has(WEATHER)) refreshWeather(false);
-        if (has(AIR)) refreshAir(false);
+        if (has(AIR) || has(WEATHER)) refreshAir(false);
         if (has(PRICES)) refreshPrices(false);
     }
 

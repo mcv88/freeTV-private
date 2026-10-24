@@ -17,6 +17,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.zip.GZIPInputStream;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -30,6 +31,9 @@ final class EspnFeed {
     private static final int MAX_MATCHES = 6;
     private static final long FRESH_MS = 30 * 60 * 1000;
     private static final long LIVE_FRESH_MS = 2 * 60 * 1000;
+    private static final long FINISHED_KEEP_MS = 12 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000;
+    private static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 14; TV)"
+            + " AppleWebKit/537.36 Chrome/120.0 Safari/537.36";
 
     private EspnFeed() {
     }
@@ -83,12 +87,16 @@ final class EspnFeed {
         try {
             http = (HttpURLConnection) new URL(String.format(Locale.US, URL_FORMAT, league))
                     .openConnection();
-            http.setConnectTimeout(10_000);
-            http.setReadTimeout(10_000);
+            http.setConnectTimeout(30_000);
+            http.setReadTimeout(30_000);
+            http.setRequestProperty("User-Agent", USER_AGENT);
+            http.setRequestProperty("Accept-Encoding", "gzip");
+            InputStream raw = http.getInputStream();
+            InputStream in = "gzip".equalsIgnoreCase(http.getContentEncoding())
+                    ? new GZIPInputStream(raw) : raw;
             StringBuilder out = new StringBuilder();
-            try (InputStream in = http.getInputStream();
-                 BufferedReader reader = new BufferedReader(
-                         new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(in, StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) out.append(line).append('\n');
             }
@@ -102,8 +110,10 @@ final class EspnFeed {
 
     private static List<String> parse(Context context, String body) {
         List<String> lines = new ArrayList<>();
+        List<String> finished = new ArrayList<>();
         String live = context.getString(R.string.headline_match_live);
         String prefix = context.getString(R.string.headline_match_prefix);
+        String done = context.getString(R.string.headline_match_finished);
         String today = LocalDate.now().toString();
         int nowMinutes = LocalTime.now().getHour() * 60 + LocalTime.now().getMinute();
         try {
@@ -113,10 +123,8 @@ final class EspnFeed {
                         .getJSONArray("competitions").getJSONObject(0);
                 JSONObject status = competition.getJSONObject("status");
                 String state = status.getJSONObject("type").getString("state");
-                if (state.equals("post")) continue;
                 ZonedDateTime when = Instant.parse(events.getJSONObject(i).getString("date"))
                         .atZone(ZoneId.systemDefault());
-                if (!when.toLocalDate().toString().equals(today)) continue;
                 JSONArray competitors = competition.getJSONArray("competitors");
                 String home = null, away = null, homeScore = null, awayScore = null;
                 for (int j = 0; j < competitors.length(); j++) {
@@ -144,13 +152,27 @@ final class EspnFeed {
                                     + " - " + awayScore + " " + away;
                         }
                     }
+                    if (!lines.contains(line)) lines.add(line);
+                } else if (state.equals("post")) {
+                    long age = System.currentTimeMillis() - when.toInstant().toEpochMilli();
+                    if (age < 0 || age > FINISHED_KEEP_MS) continue;
+                    if (homeScore.isEmpty() || awayScore.isEmpty()) continue;
+                    line = done + " " + home + " " + homeScore + " - " + awayScore
+                            + " " + away;
+                    if (!finished.contains(line)) finished.add(line);
                 } else {
+                    if (!when.toLocalDate().toString().equals(today)) continue;
                     int minutes = when.getHour() * 60 + when.getMinute();
                     if (minutes < nowMinutes) continue;
                     String time = String.format(Locale.US, "%02d:%02d",
                             when.getHour(), when.getMinute());
                     line = prefix + " " + time + " " + home + " - " + away;
+                    if (!lines.contains(line)) lines.add(line);
                 }
+            }
+
+            for (String line : finished) {
+                if (lines.size() >= MAX_MATCHES) break;
                 if (!lines.contains(line)) lines.add(line);
             }
         } catch (Exception e) {

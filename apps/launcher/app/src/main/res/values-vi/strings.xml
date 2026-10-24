@@ -191,6 +191,7 @@
     <string name="rain_none">Hai giờ tới không có mưa</string>
     <string name="headline_match_prefix">Tối nay</string>
     <string name="headline_match_live">Đang đá</string>
+    <string name="headline_match_finished">Hết giờ</string>
     <string name="headline_strip">Dải tin đầu trang</string>
     <string name="headline_strip_desc">Cảnh báo mưa, tin nóng và trận tối nay ở đầu trang</string>
     <string name="prices_gold">Vàng · triệu đ/lượng</string>
