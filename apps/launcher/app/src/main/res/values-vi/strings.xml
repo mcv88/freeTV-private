@@ -194,8 +194,6 @@
     <string name="headline_match_finished">Hết giờ</string>
     <string name="header_bold">Chữ ngày giờ đậm</string>
     <string name="header_bold_desc">Nét chữ đậm hơn cho giờ và dòng thứ ngày</string>
-    <string name="header_date_top">Ngày ngang đỉnh giờ</string>
-    <string name="header_date_top_desc">Đưa dòng thứ ngày lên ngang đỉnh số giờ thay vì ở giữa</string>
     <string name="widget_section_desc">Thẻ, bố cục, thao tác chạm và kích thước thẻ</string>
     <string name="headline_strip">Dải tin đầu trang</string>
     <string name="headline_strip_desc">Cảnh báo mưa, UV cao, không khí xấu, thời tiết hôm nay và ngày mai, tin nóng và trận tối nay ở đầu trang</string>

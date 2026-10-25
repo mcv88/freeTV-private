@@ -74,8 +74,7 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView greetingTextChoice;
     private TextView headerBoldChoice;
     private M3Switch headerBoldSwitch;
-    private TextView headerDateTopChoice;
-    private M3Switch headerDateTopSwitch;
+
     private TextView widgetSectionChoice;
     private TextView widgetLayoutChoice;
     private TextView widgetTapChoice;
@@ -220,19 +219,6 @@ public final class LauncherSettingsActivity extends Activity {
             boolean on = !choices.getBoolean(MainActivity.HEADER_BOLD_KEY, false);
             choices.edit().putBoolean(MainActivity.HEADER_BOLD_KEY, on).apply();
             headerBoldSwitch.setChecked(on);
-        });
-        headerDateTopChoice = findViewById(R.id.headerDateTopChoice);
-        headerDateTopChoice.setText(item(getString(R.string.header_date_top),
-                getString(R.string.header_date_top_desc)));
-        headerDateTopSwitch = new M3Switch(density, palette, config.animations);
-        headerDateTopSwitch.setChecked(
-                choices.getBoolean(MainActivity.HEADER_DATE_TOP_KEY, false));
-        headerDateTopChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                icon(R.drawable.ic_move), null, headerDateTopSwitch, null);
-        headerDateTopChoice.setOnClickListener(v -> {
-            boolean on = !choices.getBoolean(MainActivity.HEADER_DATE_TOP_KEY, false);
-            choices.edit().putBoolean(MainActivity.HEADER_DATE_TOP_KEY, on).apply();
-            headerDateTopSwitch.setChecked(on);
         });
         showHeaderSection();
         showWidgetToggles(density);
@@ -410,9 +396,7 @@ public final class LauncherSettingsActivity extends Activity {
         tickerLengthChoice.setVisibility(visibility);
         sourcesChoice.setVisibility(visibility);
         greetingChoice.setVisibility(visibility);
-        greetingTextChoice.setVisibility(visibility);
         headerBoldChoice.setVisibility(visibility);
-        headerDateTopChoice.setVisibility(visibility);
     }
 
     private void showLookSection() {
@@ -541,13 +525,11 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     private void refreshGreetingRows() {
-        boolean on = choices.getBoolean(MainActivity.GREETING_KEY, false);
         String custom = choices.getString(MainActivity.GREETING_TEXT_KEY, "");
         String shown = custom != null && !custom.isEmpty() ? custom
                 : getString(R.string.greeting_text_auto);
         greetingTextChoice.setText(item(getString(R.string.greeting_text), shown));
-        greetingTextChoice.setEnabled(on);
-        greetingTextChoice.setAlpha(on ? 1f : 0.38f);
+        greetingTextChoice.setVisibility(View.GONE);
     }
 
     private void chooseGreetingText() {

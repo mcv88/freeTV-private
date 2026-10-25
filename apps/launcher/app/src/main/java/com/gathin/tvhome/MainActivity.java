@@ -48,6 +48,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.provider.Settings;
+import android.text.Layout;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -114,7 +115,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     static final String TICKER_WIDTH_PX_KEY = "ticker_width_px";
     static final String GREETING_TEXT_KEY = "greeting_text";
     static final String HEADER_BOLD_KEY = "header_bold";
-    static final String HEADER_DATE_TOP_KEY = "header_date_top";
     /** News sources, one entry per outlet section, in picker order. */
     static final String[] NEWS_SOURCE_KEYS = {
             "src_news_tt_thoisu", "src_news_tt_thegioi", "src_news_tt_kinhdoanh",
@@ -1007,6 +1007,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambient.animate().cancel();
         handler.removeCallbacks(minuteTick);
         handler.removeCallbacks(headlineTick);
+        stopTickerScroll();
         stopStats();
         if (diya != null) diya.stop();
         cancelPendingFocusScroll();
@@ -1474,15 +1475,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float clockBaseline = yInRoot(clock) + clock.getBaseline();
 
         View dateBlock = (View) date.getParent();
-        if (settingsPreferences.getBoolean(HEADER_DATE_TOP_KEY, false)) {
-            Rect dateDigit = new Rect();
-            date.getPaint().getTextBounds("0", 0, 1, dateDigit);
-            float dateGlyphTop = yInRoot(date) + date.getBaseline() + dateDigit.top;
-            dateBlock.setTranslationY(clockBaseline - cap - dateGlyphTop);
-        } else {
-            float stackCentre = yInRoot(dateBlock) + dateBlock.getHeight() / 2f;
-            dateBlock.setTranslationY(clockBaseline - cap / 2f - stackCentre);
-        }
+        float stackCentre = yInRoot(dateBlock) + dateBlock.getHeight() / 2f;
+        dateBlock.setTranslationY(clockBaseline - cap / 2f - stackCentre);
 
         if (divider != null && divider.getHeight() > 0) {
             float top = yInRoot(divider);
@@ -2359,6 +2353,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void refreshHeadline() {
         if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) {
+            stopTickerScroll();
             headlineStrip.setVisibility(View.GONE);
             return;
         }
@@ -2375,6 +2370,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (tomorrow != null) ticker.add(tomorrow);
         for (String line : headlineItems) if (!ticker.contains(line)) ticker.add(line);
         if (ticker.isEmpty()) {
+            stopTickerScroll();
             headlineStrip.setVisibility(View.GONE);
             return;
         }
@@ -2390,9 +2386,62 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (!joined.toString().equals(headlineStrip.getText().toString())) {
             headlineStrip.setText(joined);
+            headlineStrip.scrollTo(0, 0);
         }
-        headlineStrip.setSelected(true);
         headlineStrip.setVisibility(View.VISIBLE);
+        startTickerScroll();
+    }
+
+    private static final int TICKER_STEP_MS = 50;
+    private static final int TICKER_STEP_PX = 6;
+    private static final int TICKER_WRAP_PAUSE_MS = 1200;
+    private boolean tickerScrolling;
+    private final Runnable tickerScroll = new Runnable() {
+        @Override public void run() {
+            tickerScrolling = false;
+            stepTickerScroll();
+        }
+    };
+
+    private void startTickerScroll() {
+        if (tickerScrolling) return;
+        tickerScrolling = true;
+        handler.post(tickerScroll);
+    }
+
+    private void stopTickerScroll() {
+        tickerScrolling = false;
+        handler.removeCallbacks(tickerScroll);
+    }
+
+    private void stepTickerScroll() {
+        if (headlineStrip == null || headlineStrip.getVisibility() != View.VISIBLE) return;
+
+        Layout layout = headlineStrip.getLayout();
+        if (layout == null || layout.getLineCount() == 0) {
+            handler.postDelayed(tickerScroll, TICKER_STEP_MS);
+            tickerScrolling = true;
+            return;
+        }
+
+        int viewWidth = headlineStrip.getWidth()
+                - headlineStrip.getPaddingStart() - headlineStrip.getPaddingEnd();
+        int textWidth = Math.round(layout.getLineWidth(0));
+        int maxScroll = textWidth - viewWidth;
+        if (maxScroll <= 0) {
+            headlineStrip.scrollTo(0, 0);
+            return;
+        }
+
+        int next = headlineStrip.getScrollX() + TICKER_STEP_PX;
+        if (next >= maxScroll) {
+            headlineStrip.scrollTo(0, 0);
+            handler.postDelayed(tickerScroll, TICKER_WRAP_PAUSE_MS);
+        } else {
+            headlineStrip.scrollTo(next, 0);
+            handler.postDelayed(tickerScroll, TICKER_STEP_MS);
+        }
+        tickerScrolling = true;
     }
 
     private String uvLine() {

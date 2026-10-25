@@ -77,7 +77,7 @@
                     <TextView android:id="@+id/greetingChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/greetingTextChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/headerBoldChoice" style="@style/SettingsListItem" />
-                    <TextView android:id="@+id/headerDateTopChoice" style="@style/SettingsListItem" />
+
                 </LinearLayout>
 
                 <LinearLayout style="@style/SettingsSheetGroup">
