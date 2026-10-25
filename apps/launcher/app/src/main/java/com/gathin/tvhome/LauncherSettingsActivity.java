@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.widget.EditText;
 import android.view.inputmethod.EditorInfo;
 import android.view.WindowManager;
@@ -22,6 +23,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.RelativeSizeSpan;
@@ -37,11 +39,13 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.IntConsumer;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Remote-friendly settings owned by the launcher, as a side sheet over Home: grouped lists under group
- * labels (Home, Appearance, Screensaver, You, Motion, System, About), each row with its icon. System settings
- * stay one row away.
+ * Remote-friendly settings owned by the launcher, as a side sheet over Home: collapsible sections
+ * (Header, Widgets, Appearance, System, About), each row with its icon. The update row stays
+ * outside any section, one tap away.
  */
 public final class LauncherSettingsActivity extends Activity {
     private SharedPreferences choices;
@@ -54,9 +58,32 @@ public final class LauncherSettingsActivity extends Activity {
     private M3Switch animationsSwitch;
     private M3Switch advancedSwitch;
     private M3Switch widgetsSwitch;
-    private TextView nameChoice;
     private TextView widgetsChoice;
+    private TextView headlineStripChoice;
+    private M3Switch headlineStripSwitch;
+    private TextView tickerLengthChoice;
+    private TextView tickerScrollChoice;
+    private TextView sourcesChoice;
+    private TextView headerSectionChoice;
+    private TextView lookSectionChoice;
+    private TextView systemSectionChoice;
+    private TextView aboutSectionChoice;
+    private TextView rebootChoice;
+    private TextView resetChoice;
+    private TextView greetingChoice;
+    private M3Switch greetingSwitch;
+    private TextView greetingTextChoice;
+    private TextView headerBoldChoice;
+    private M3Switch headerBoldSwitch;
+
+    private TextView widgetSectionChoice;
+    private TextView widgetLayoutChoice;
+    private TextView widgetTapChoice;
+    private TextView popupBlurChoice;
+    private final TextView[] widgetHeightRows = new TextView[WIDGET_IDS.length];
+    private final TextView[] widgetWidthRows = new TextView[WIDGET_IDS.length];
     private TextView tvSettingsChoice;
+    private TextView bootAppChoice;
     private TextView colorChoice;
     private TextView backdropChoice;
     private TextView screensaverTimeChoice;
@@ -72,8 +99,6 @@ public final class LauncherSettingsActivity extends Activity {
     private Palette palette;
     /** Google TV's own home screen, which tvctl turns off when this launcher takes over. */
     private static final String STOCK_LAUNCHER = "com.google.android.apps.tv.launcherx";
-    /** The name Home greets with ("Good night, Kien"); greeting_name in config.xml until set here. */
-    static final String NAME_KEY = "greeting_name";
     private int columns;
     private boolean animations;
     private boolean advancedEffects;
@@ -118,15 +143,17 @@ public final class LauncherSettingsActivity extends Activity {
         tvSettingsChoice.setText(getString(R.string.tv_settings));
         tvSettingsChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_settings), null,
                 icon(R.drawable.ic_open_in_new), null);
-        TextView rebootChoice = findViewById(R.id.rebootChoice);
+        rebootChoice = findViewById(R.id.rebootChoice);
         rebootChoice.setText(item(getString(R.string.reboot), getString(R.string.reboot_desc)));
         rebootChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_power), null, null, null);
         rebootChoice.setOnClickListener(v -> confirmPower(config));
+        resetChoice = findViewById(R.id.resetChoice);
+        resetChoice.setText(item(getString(R.string.reset_settings),
+                getString(R.string.reset_settings_desc)));
+        resetChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_refresh), null, null, null);
+        resetChoice.setOnClickListener(v -> confirmResetSettings(config));
 
-        nameChoice = findViewById(R.id.nameChoice);
-        nameChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_person), null, null, null);
-        showName();
-        nameChoice.setOnClickListener(v -> editName(config));
         widgetsChoice = findViewById(R.id.widgetsChoice);
         widgetsChoice.setText(item(getString(R.string.widgets), getString(R.string.widgets_desc)));
         boolean widgetsDefault = getResources().getBoolean(R.bool.widgets);
@@ -138,14 +165,84 @@ public final class LauncherSettingsActivity extends Activity {
             boolean on = !choices.getBoolean(WidgetShelf.PREF_KEY, widgetsDefault);
             choices.edit().putBoolean(WidgetShelf.PREF_KEY, on).apply();
             widgetsSwitch.setChecked(on);
+            refreshWidgetRows();
         });
+        headlineStripChoice = findViewById(R.id.headlineStripChoice);
+        headlineStripChoice.setText(item(getString(R.string.headline_strip),
+                getString(R.string.headline_strip_desc)));
+        headlineStripSwitch = new M3Switch(density, palette, config.animations);
+        headlineStripSwitch.setChecked(
+                choices.getBoolean(MainActivity.HEADLINE_STRIP_KEY, true));
+        headlineStripChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_info), null, headlineStripSwitch, null);
+        headlineStripChoice.setOnClickListener(v -> {
+            boolean on = !choices.getBoolean(MainActivity.HEADLINE_STRIP_KEY, true);
+            choices.edit().putBoolean(MainActivity.HEADLINE_STRIP_KEY, on).apply();
+            headlineStripSwitch.setChecked(on);
+        });
+        tickerLengthChoice = findViewById(R.id.tickerLengthChoice);
+        tickerLengthChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_info), null, null, null);
+        tickerLengthChoice.setOnClickListener(v -> chooseTickerLength(config));
+        refreshTickerLengthRow();
+        tickerScrollChoice = findViewById(R.id.tickerScrollChoice);
+        tickerScrollChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_move), null, null, null);
+        tickerScrollChoice.setOnClickListener(v -> chooseTickerScroll(config));
+        refreshTickerScrollRow();
+        sourcesChoice = findViewById(R.id.sourcesChoice);
+        sourcesChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_info), null, null, null);
+        sourcesChoice.setOnClickListener(v -> chooseSources(config));
+        refreshSourcesRow();
+        greetingChoice = findViewById(R.id.greetingChoice);
+        greetingChoice.setText(item(getString(R.string.greeting),
+                getString(R.string.greeting_desc)));
+        greetingSwitch = new M3Switch(density, palette, config.animations);
+        greetingSwitch.setChecked(choices.getBoolean(MainActivity.GREETING_KEY, false));
+        greetingChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_person), null, greetingSwitch, null);
+        greetingChoice.setOnClickListener(v -> {
+            boolean on = !choices.getBoolean(MainActivity.GREETING_KEY, false);
+            choices.edit().putBoolean(MainActivity.GREETING_KEY, on).apply();
+            greetingSwitch.setChecked(on);
+            refreshGreetingRows();
+        });
+        greetingTextChoice = findViewById(R.id.greetingTextChoice);
+        greetingTextChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_code), null, null, null);
+        greetingTextChoice.setOnClickListener(v -> chooseGreetingText());
+        refreshGreetingRows();
+        headerBoldChoice = findViewById(R.id.headerBoldChoice);
+        headerBoldChoice.setText(item(getString(R.string.header_bold),
+                getString(R.string.header_bold_desc)));
+        headerBoldSwitch = new M3Switch(density, palette, config.animations);
+        headerBoldSwitch.setChecked(
+                choices.getBoolean(MainActivity.HEADER_BOLD_KEY, false));
+        headerBoldChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_contrast), null, headerBoldSwitch, null);
+        headerBoldChoice.setOnClickListener(v -> {
+            boolean on = !choices.getBoolean(MainActivity.HEADER_BOLD_KEY, false);
+            choices.edit().putBoolean(MainActivity.HEADER_BOLD_KEY, on).apply();
+            headerBoldSwitch.setChecked(on);
+        });
+        showHeaderSection();
+        showWidgetToggles(density);
+        showWidgetLayout(config);
+        showWidgetHeights(config);
+        showWidgetWidths(config);
+        showWidgetSection();
         tvSettingsChoice.setOnClickListener(v -> open(TvSettings.main(this)));
         showMenuInputs(config, density);
         showLook(config);
         showScreensaver(config);
+        showLookSection();
         showHomeStatus();
+        showBootApp(config);
+        showSystemSection();
         showUpdate();
         showAbout();
+        showAboutSection();
         refresh();
         View sheet = findViewById(R.id.sheet);
         GradientDrawable sheetBg = new GradientDrawable();
@@ -161,6 +258,589 @@ public final class LauncherSettingsActivity extends Activity {
         settingsScroll.setMotion(config.animations, config.reducedMotion);
         sideSheet.slideIn((ViewGroup) settingsScroll.getChildAt(0));
         columnsChoice.requestFocus();
+    }
+
+    /** The widgets the owner can show or hide one by one, in shelf order,
+     *  each with its settings rows. */
+    private static final String[] WIDGET_IDS = {WidgetShelf.WEATHER, WidgetShelf.SYSTEM,
+            WidgetShelf.AIR, WidgetShelf.CALENDAR, WidgetShelf.PRICES};
+    private static final int[] WIDGET_ROWS = {R.id.widgetToggleWeather, R.id.widgetToggleSystem,
+            R.id.widgetToggleAir, R.id.widgetToggleCalendar, R.id.widgetTogglePrices};
+    private static final int[] WIDGET_NAMES = {R.string.weather, R.string.widget_system,
+            R.string.air_quality, R.string.lunar_calendar, R.string.prices};
+    private static final int[] WIDGET_ICONS = {R.drawable.ic_w_partly_day, R.drawable.ic_memory,
+            R.drawable.ic_air, R.drawable.ic_calendar, R.drawable.ic_speed};
+    private final TextView[] widgetRows = new TextView[WIDGET_IDS.length];
+    private final M3Switch[] widgetSwitches = new M3Switch[WIDGET_IDS.length];
+
+    private static final String WIDGET_SECTION_KEY = "widget_section";
+
+    private void showWidgetSection() {
+        widgetSectionChoice = findViewById(R.id.widgetSectionChoice);
+        widgetSectionChoice.setText(item(getString(R.string.widgets),
+                getString(R.string.widget_section_desc)));
+        widgetSectionChoice.setOnClickListener(v -> {
+            boolean expanded = !choices.getBoolean(WIDGET_SECTION_KEY, false);
+            choices.edit().putBoolean(WIDGET_SECTION_KEY, expanded).apply();
+            refreshWidgetSection();
+        });
+        refreshWidgetSection();
+    }
+
+    private void refreshWidgetSection() {
+        boolean expanded = choices.getBoolean(WIDGET_SECTION_KEY, false);
+        widgetSectionChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_widgets), null,
+                icon(expanded ? R.drawable.ic_remove : R.drawable.ic_add), null);
+        int visibility = expanded ? View.VISIBLE : View.GONE;
+        widgetsChoice.setVisibility(visibility);
+        widgetLayoutChoice.setVisibility(visibility);
+        widgetTapChoice.setVisibility(visibility);
+        popupBlurChoice.setVisibility(visibility);
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            widgetRows[i].setVisibility(visibility);
+            widgetHeightRows[i].setVisibility(visibility);
+            widgetWidthRows[i].setVisibility(visibility);
+        }
+    }
+
+    private static final String HEADER_SECTION_KEY = "header_section";
+    private static final String LOOK_SECTION_KEY = "look_section";
+    private static final String SYSTEM_SECTION_KEY = "system_section";
+    private static final String ABOUT_SECTION_KEY = "about_section";
+
+    private static final String[] TICKER_LENGTH_VALUES = {MainActivity.TICKER_LEN_SHORT,
+            MainActivity.TICKER_LEN_WIFI, MainActivity.TICKER_LEN_FULL,
+            MainActivity.TICKER_LEN_CUSTOM};
+    private static final int[] TICKER_LENGTH_LABELS = {R.string.ticker_len_short,
+            R.string.ticker_len_wifi, R.string.ticker_len_full, R.string.ticker_len_custom};
+
+    private void chooseTickerLength(Config config) {
+        CharSequence[] labels = new CharSequence[TICKER_LENGTH_LABELS.length];
+        for (int i = 0; i < labels.length; i++) labels[i] = getString(TICKER_LENGTH_LABELS[i]);
+        chooseOne(R.string.ticker_length, labels, null, tickerLengthIndex(), index -> {
+            if (MainActivity.TICKER_LEN_CUSTOM.equals(TICKER_LENGTH_VALUES[index])) {
+                chooseTickerWidthPx();
+                return;
+            }
+            choices.edit().putString(MainActivity.TICKER_LENGTH_KEY,
+                    TICKER_LENGTH_VALUES[index]).apply();
+            refreshTickerLengthRow();
+        }, config);
+    }
+
+    private void chooseTickerWidthPx() {
+        EditText edit = new EditText(this);
+        edit.setInputType(InputType.TYPE_CLASS_NUMBER);
+        int current = choices.getInt(MainActivity.TICKER_WIDTH_PX_KEY, 0);
+        if (current > 0) edit.setText(String.valueOf(current));
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.ticker_len_custom)
+                .setView(edit)
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    String text = edit.getText().toString().trim();
+                    if (text.isEmpty()) return;
+                    int width;
+                    try {
+                        width = Integer.parseInt(text);
+                    } catch (NumberFormatException e) {
+                        return;
+                    }
+                    int max = getResources().getDisplayMetrics().widthPixels;
+                    width = Math.max(0, Math.min(width, max));
+                    choices.edit()
+                            .putString(MainActivity.TICKER_LENGTH_KEY,
+                                    MainActivity.TICKER_LEN_CUSTOM)
+                            .putInt(MainActivity.TICKER_WIDTH_PX_KEY, width)
+                            .apply();
+                    refreshTickerLengthRow();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private int tickerLengthIndex() {
+        String length = choices.getString(MainActivity.TICKER_LENGTH_KEY,
+                MainActivity.TICKER_LEN_WIFI);
+        for (int i = 0; i < TICKER_LENGTH_VALUES.length; i++) {
+            if (TICKER_LENGTH_VALUES[i].equals(length)) return i;
+        }
+        return 1;
+    }
+
+    private void refreshTickerLengthRow() {
+        int index = tickerLengthIndex();
+        String desc;
+        if (MainActivity.TICKER_LEN_CUSTOM.equals(TICKER_LENGTH_VALUES[index])) {
+            int width = choices.getInt(MainActivity.TICKER_WIDTH_PX_KEY, 0);
+            desc = getString(R.string.ticker_len_custom_value, width);
+        } else {
+            desc = getString(TICKER_LENGTH_LABELS[index]);
+        }
+        tickerLengthChoice.setText(item(getString(R.string.ticker_length), desc));
+    }
+
+    private static final String[] TICKER_SCROLL_VALUES = {MainActivity.TICKER_SCROLL_MARQUEE,
+            MainActivity.TICKER_SCROLL_MANUAL};
+    private static final int[] TICKER_SCROLL_LABELS = {R.string.ticker_scroll_marquee,
+            R.string.ticker_scroll_manual};
+
+    private void chooseTickerScroll(Config config) {
+        CharSequence[] labels = new CharSequence[TICKER_SCROLL_LABELS.length];
+        for (int i = 0; i < labels.length; i++) labels[i] = getString(TICKER_SCROLL_LABELS[i]);
+        chooseOne(R.string.ticker_scroll, labels, null, tickerScrollIndex(), index -> {
+            choices.edit().putString(MainActivity.TICKER_SCROLL_KEY,
+                    TICKER_SCROLL_VALUES[index]).apply();
+            refreshTickerScrollRow();
+        }, config);
+    }
+
+    private int tickerScrollIndex() {
+        String mode = choices.getString(MainActivity.TICKER_SCROLL_KEY,
+                MainActivity.TICKER_SCROLL_MARQUEE);
+        for (int i = 0; i < TICKER_SCROLL_VALUES.length; i++) {
+            if (TICKER_SCROLL_VALUES[i].equals(mode)) return i;
+        }
+        return 0;
+    }
+
+    private void refreshTickerScrollRow() {
+        int index = tickerScrollIndex();
+        tickerScrollChoice.setText(item(getString(R.string.ticker_scroll),
+                getString(TICKER_SCROLL_LABELS[index])));
+    }
+
+    private void showHeaderSection() {
+        headerSectionChoice = findViewById(R.id.headerSectionChoice);
+        headerSectionChoice.setText(item(getString(R.string.header_section),
+                getString(R.string.header_section_desc)));
+        headerSectionChoice.setOnClickListener(v -> {
+            boolean expanded = !choices.getBoolean(HEADER_SECTION_KEY, false);
+            choices.edit().putBoolean(HEADER_SECTION_KEY, expanded).apply();
+            refreshHeaderSection();
+        });
+        refreshHeaderSection();
+    }
+
+    private void refreshHeaderSection() {
+        boolean expanded = choices.getBoolean(HEADER_SECTION_KEY, false);
+        headerSectionChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_info), null,
+                icon(expanded ? R.drawable.ic_remove : R.drawable.ic_add), null);
+        int visibility = expanded ? View.VISIBLE : View.GONE;
+        headlineStripChoice.setVisibility(visibility);
+        tickerLengthChoice.setVisibility(visibility);
+        tickerScrollChoice.setVisibility(visibility);
+        sourcesChoice.setVisibility(visibility);
+        greetingChoice.setVisibility(visibility);
+        headerBoldChoice.setVisibility(visibility);
+    }
+
+    private void showLookSection() {
+        lookSectionChoice = findViewById(R.id.lookSectionChoice);
+        lookSectionChoice.setText(item(getString(R.string.look_section),
+                getString(R.string.look_section_desc)));
+        lookSectionChoice.setOnClickListener(v -> {
+            boolean expanded = !choices.getBoolean(LOOK_SECTION_KEY, false);
+            choices.edit().putBoolean(LOOK_SECTION_KEY, expanded).apply();
+            refreshLookSection();
+        });
+        refreshLookSection();
+    }
+
+    private void refreshLookSection() {
+        boolean expanded = choices.getBoolean(LOOK_SECTION_KEY, false);
+        lookSectionChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_contrast), null,
+                icon(expanded ? R.drawable.ic_remove : R.drawable.ic_add), null);
+        int visibility = expanded ? View.VISIBLE : View.GONE;
+        colorChoice.setVisibility(visibility);
+        backdropChoice.setVisibility(visibility);
+        screensaverTimeChoice.setVisibility(visibility);
+        screensaverStyleChoice.setVisibility(visibility);
+        animationsChoice.setVisibility(visibility);
+        advancedChoice.setVisibility(visibility);
+    }
+
+    private void showSystemSection() {
+        systemSectionChoice = findViewById(R.id.systemSectionChoice);
+        systemSectionChoice.setText(item(getString(R.string.system_section),
+                getString(R.string.system_section_desc)));
+        systemSectionChoice.setOnClickListener(v -> {
+            boolean expanded = !choices.getBoolean(SYSTEM_SECTION_KEY, false);
+            choices.edit().putBoolean(SYSTEM_SECTION_KEY, expanded).apply();
+            refreshSystemSection();
+        });
+        refreshSystemSection();
+    }
+
+    private void refreshSystemSection() {
+        boolean expanded = choices.getBoolean(SYSTEM_SECTION_KEY, false);
+        systemSectionChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_settings), null,
+                icon(expanded ? R.drawable.ic_remove : R.drawable.ic_add), null);
+        int visibility = expanded ? View.VISIBLE : View.GONE;
+        tvSettingsChoice.setVisibility(visibility);
+        bootAppChoice.setVisibility(visibility);
+        rebootChoice.setVisibility(visibility);
+        resetChoice.setVisibility(visibility);
+    }
+
+    private void showAboutSection() {
+        aboutSectionChoice = findViewById(R.id.aboutSectionChoice);
+        aboutSectionChoice.setText(item(getString(R.string.about_section),
+                getString(R.string.about_section_desc)));
+        aboutSectionChoice.setOnClickListener(v -> {
+            boolean expanded = !choices.getBoolean(ABOUT_SECTION_KEY, false);
+            choices.edit().putBoolean(ABOUT_SECTION_KEY, expanded).apply();
+            refreshAboutSection();
+        });
+        refreshAboutSection();
+    }
+
+    private void refreshAboutSection() {
+        boolean expanded = choices.getBoolean(ABOUT_SECTION_KEY, false);
+        aboutSectionChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_info), null,
+                icon(expanded ? R.drawable.ic_remove : R.drawable.ic_add), null);
+        int visibility = expanded ? View.VISIBLE : View.GONE;
+        findViewById(R.id.aboutVersion).setVisibility(visibility);
+        findViewById(R.id.aboutSource).setVisibility(visibility);
+    }
+
+    /**
+     * One switch per widget under the master one: the same list Home's shelf keeps (ORDER_KEY),
+     * so hiding a widget here is its Remove on the shelf, and showing one its Add.
+     */
+    private void showWidgetToggles(float density) {
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            String id = WIDGET_IDS[i];
+            TextView row = findViewById(WIDGET_ROWS[i]);
+            widgetRows[i] = row;
+            row.setText(getString(WIDGET_NAMES[i]));
+            M3Switch toggle = new M3Switch(density, palette, animations);
+            widgetSwitches[i] = toggle;
+            row.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    icon(WIDGET_ICONS[i]), null, toggle, null);
+            row.setOnClickListener(v -> {
+                java.util.List<String> shown = shownWidgets();
+                if (shown.contains(id)) shown.remove(id); else shown.add(id);
+                choices.edit().putString(WidgetShelf.ORDER_KEY, String.join(",", shown)).apply();
+                refreshWidgetRows();
+            });
+        }
+        refreshWidgetRows();
+    }
+
+    /** The widgets on the shelf, left to right; every one until the owner changes the list. */
+    private java.util.List<String> shownWidgets() {
+        java.util.List<String> shown = new java.util.ArrayList<>();
+        String saved = choices.getString(WidgetShelf.ORDER_KEY, WidgetShelf.DEFAULT_ORDER);
+        for (String id : saved.split(",")) {
+            id = id.trim();
+            for (String known : WIDGET_IDS) {
+                if (known.equals(id) && !shown.contains(id)) shown.add(id);
+            }
+        }
+        return shown;
+    }
+
+    private void refreshWidgetRows() {
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        java.util.List<String> shown = shownWidgets();
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            widgetSwitches[i].setChecked(shown.contains(WIDGET_IDS[i]));
+            widgetRows[i].setEnabled(master);
+            widgetRows[i].setAlpha(master ? 1f : 0.38f);
+        }
+        if (widgetLayoutChoice != null) refreshWidgetLayoutRows();
+        if (widgetTapChoice != null) refreshWidgetTapRow();
+        if (popupBlurChoice != null) refreshPopupBlurRow();
+        if (widgetHeightRows[0] != null) refreshWidgetHeightRows();
+        if (widgetWidthRows[0] != null) refreshWidgetWidthRows();
+    }
+
+    private void refreshGreetingRows() {
+        String custom = choices.getString(MainActivity.GREETING_TEXT_KEY, "");
+        String shown = custom != null && !custom.isEmpty() ? custom
+                : getString(R.string.greeting_text_auto);
+        greetingTextChoice.setText(item(getString(R.string.greeting_text), shown));
+        greetingTextChoice.setVisibility(View.GONE);
+    }
+
+    private void chooseGreetingText() {
+        EditText edit = new EditText(this);
+        edit.setHint(R.string.greeting_text_hint);
+        String current = choices.getString(MainActivity.GREETING_TEXT_KEY, "");
+        if (current != null) edit.setText(current);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.greeting_text)
+                .setView(edit)
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    choices.edit().putString(MainActivity.GREETING_TEXT_KEY,
+                            edit.getText().toString().trim()).apply();
+                    refreshGreetingRows();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private static final int[] HEIGHT_OPTIONS = {176, 192, 200, 208, 224};
+
+    /** The shelf's arrangement and card height; Home applies both when it shows again. */
+    private void showWidgetLayout(Config config) {
+        widgetLayoutChoice = findViewById(R.id.widgetLayoutChoice);
+        widgetLayoutChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_grid_view), null, null, null);
+        widgetLayoutChoice.setOnClickListener(v -> chooseWidgetLayout(config));
+        refreshWidgetLayoutRows();
+        widgetTapChoice = findViewById(R.id.widgetTapChoice);
+        widgetTapChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_open_in_new), null, null, null);
+        widgetTapChoice.setOnClickListener(v -> chooseWidgetTap(config));
+        refreshWidgetTapRow();
+        popupBlurChoice = findViewById(R.id.popupBlurChoice);
+        popupBlurChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_contrast), null, null, null);
+        popupBlurChoice.setOnClickListener(v -> choosePopupBlur(config));
+        refreshPopupBlurRow();
+    }
+
+    private static final int[] HEIGHT_ROWS = {R.id.widgetHeightWeather, R.id.widgetHeightSystem,
+            R.id.widgetHeightAir, R.id.widgetHeightCalendar, R.id.widgetHeightPrices};
+
+    /** One height row under each widget's switch, so every card's height is its own choice. */
+    private void showWidgetHeights(Config config) {
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            int index = i;
+            TextView row = findViewById(HEIGHT_ROWS[i]);
+            widgetHeightRows[i] = row;
+            row.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    icon(R.drawable.ic_swap_vert), null, null, null);
+            row.setOnClickListener(v -> chooseWidgetHeight(config, index));
+        }
+        refreshWidgetHeightRows();
+    }
+
+    private void refreshWidgetHeightRows() {
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            int height = WidgetShelf.cardHeightDp(choices, WIDGET_IDS[i]);
+            widgetHeightRows[i].setText(item(
+                    getString(WIDGET_NAMES[i]) + " · " + getString(R.string.widget_card_height),
+                    getString(R.string.widget_height_value, height)));
+            widgetHeightRows[i].setEnabled(master);
+            widgetHeightRows[i].setAlpha(master ? 1f : 0.38f);
+        }
+    }
+
+    private void chooseWidgetLayout(Config config) {
+        CharSequence[] labels = {getString(R.string.widget_layout_stacked),
+                getString(R.string.widget_layout_wide)};
+        int selected = WidgetShelf.LAYOUT_WIDE.equals(
+                choices.getString(WidgetShelf.LAYOUT_KEY, WidgetShelf.LAYOUT_STACKED)) ? 1 : 0;
+        chooseOne(R.string.widget_layout, labels, null, selected, index -> {
+            choices.edit().putString(WidgetShelf.LAYOUT_KEY,
+                    index == 1 ? WidgetShelf.LAYOUT_WIDE : WidgetShelf.LAYOUT_STACKED).apply();
+            setResult(RESULT_OK);
+            refreshWidgetLayoutRows();
+        }, config);
+    }
+
+    private void chooseWidgetTap(Config config) {
+        CharSequence[] labels = {getString(R.string.widget_tap_detail),
+                getString(R.string.widget_tap_classic)};
+        int selected = WidgetShelf.TAP_CLASSIC.equals(
+                choices.getString(WidgetShelf.TAP_KEY, WidgetShelf.TAP_DETAIL)) ? 1 : 0;
+        chooseOne(R.string.widget_tap, labels, null, selected, index -> {
+            choices.edit().putString(WidgetShelf.TAP_KEY,
+                    index == 1 ? WidgetShelf.TAP_CLASSIC : WidgetShelf.TAP_DETAIL).apply();
+            setResult(RESULT_OK);
+            refreshWidgetTapRow();
+        }, config);
+    }
+
+    private void refreshWidgetTapRow() {
+        boolean classic = WidgetShelf.TAP_CLASSIC.equals(
+                choices.getString(WidgetShelf.TAP_KEY, WidgetShelf.TAP_DETAIL));
+        widgetTapChoice.setText(item(getString(R.string.widget_tap),
+                getString(classic ? R.string.widget_tap_classic : R.string.widget_tap_detail)));
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        widgetTapChoice.setEnabled(master);
+        widgetTapChoice.setAlpha(master ? 1f : 0.38f);
+    }
+
+    private static final String[] POPUP_BLUR_VALUES = {MainActivity.POPUP_BLUR_ALL,
+            MainActivity.POPUP_BLUR_DIM, MainActivity.POPUP_BLUR_OFF};
+    private static final int[] POPUP_BLUR_LABELS = {R.string.popup_blur_all,
+            R.string.popup_blur_dim, R.string.popup_blur_off};
+
+    private void choosePopupBlur(Config config) {
+        CharSequence[] labels = new CharSequence[POPUP_BLUR_LABELS.length];
+        for (int i = 0; i < labels.length; i++) labels[i] = getString(POPUP_BLUR_LABELS[i]);
+        int selected = popupBlurIndex();
+        chooseOne(R.string.popup_blur, labels, null, selected, index -> {
+            choices.edit().putString(MainActivity.POPUP_BLUR_KEY,
+                    POPUP_BLUR_VALUES[index]).apply();
+            setResult(RESULT_OK);
+            refreshPopupBlurRow();
+        }, config);
+    }
+
+    private int popupBlurIndex() {
+        String mode = choices.getString(MainActivity.POPUP_BLUR_KEY, MainActivity.POPUP_BLUR_ALL);
+        for (int i = 0; i < POPUP_BLUR_VALUES.length; i++) {
+            if (POPUP_BLUR_VALUES[i].equals(mode)) return i;
+        }
+        return 0;
+    }
+
+    private void refreshPopupBlurRow() {
+        popupBlurChoice.setText(item(getString(R.string.popup_blur),
+                getString(POPUP_BLUR_LABELS[popupBlurIndex()])));
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        popupBlurChoice.setEnabled(master);
+        popupBlurChoice.setAlpha(master ? 1f : 0.38f);
+    }
+
+    private static final int[] WIDTH_ROWS = {R.id.widgetWidthWeather, R.id.widgetWidthSystem,
+            R.id.widgetWidthAir, R.id.widgetWidthCalendar, R.id.widgetWidthPrices};
+    private static final int[] WIDTH_LABELS = {R.string.widget_width_tiny,
+            R.string.widget_width_narrow, R.string.widget_width_medium,
+            R.string.widget_width_wide, R.string.widget_width_widest};
+
+    /** One width row under each widget's height row: its share of the shelf's row, by percent. */
+    private void showWidgetWidths(Config config) {
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            int index = i;
+            TextView row = findViewById(WIDTH_ROWS[i]);
+            widgetWidthRows[i] = row;
+            row.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    icon(R.drawable.ic_swap_horiz), null, null, null);
+            row.setOnClickListener(v -> chooseWidgetWidth(config, index));
+        }
+        refreshWidgetWidthRows();
+    }
+
+    private void refreshWidgetWidthRows() {
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        for (int i = 0; i < WIDGET_IDS.length; i++) {
+            int percent = WidgetShelf.cardWidthPercent(choices, WIDGET_IDS[i]);
+            widgetWidthRows[i].setText(item(
+                    getString(WIDGET_NAMES[i]) + " · " + getString(R.string.widget_width),
+                    getString(WIDTH_LABELS[widthOption(percent)])));
+            widgetWidthRows[i].setEnabled(master);
+            widgetWidthRows[i].setAlpha(master ? 1f : 0.38f);
+        }
+    }
+
+    private static int widthOption(int percent) {
+        for (int i = 0; i < WidgetShelf.WIDTH_OPTIONS.length; i++) {
+            if (WidgetShelf.WIDTH_OPTIONS[i] == percent) return i;
+        }
+        return 2;
+    }
+
+    private void chooseWidgetWidth(Config config, int widget) {
+        CharSequence[] labels = new CharSequence[WidgetShelf.WIDTH_OPTIONS.length];
+        for (int i = 0; i < labels.length; i++) labels[i] = getString(WIDTH_LABELS[i]);
+        int selected = widthOption(WidgetShelf.cardWidthPercent(choices, WIDGET_IDS[widget]));
+        chooseOne(WIDGET_NAMES[widget], labels, null, selected, index -> {
+            choices.edit().putInt(WidgetShelf.WIDTH_KEY_PREFIX + WIDGET_IDS[widget],
+                    WidgetShelf.WIDTH_OPTIONS[index]).apply();
+            setResult(RESULT_OK);
+            refreshWidgetWidthRows();
+        }, config);
+    }
+
+    private void chooseWidgetHeight(Config config, int widget) {
+        CharSequence[] labels = new CharSequence[HEIGHT_OPTIONS.length];
+        int current = WidgetShelf.cardHeightDp(choices, WIDGET_IDS[widget]);
+        int selected = 0;
+        for (int i = 0; i < HEIGHT_OPTIONS.length; i++) {
+            labels[i] = getString(R.string.widget_height_value, HEIGHT_OPTIONS[i]);
+            if (HEIGHT_OPTIONS[i] == current) selected = i;
+        }
+        chooseOne(WIDGET_NAMES[widget], labels, null, selected, index -> {
+            choices.edit().putInt(WidgetShelf.HEIGHT_KEY_PREFIX + WIDGET_IDS[widget],
+                    HEIGHT_OPTIONS[index]).apply();
+            setResult(RESULT_OK);
+            refreshWidgetHeightRows();
+        }, config);
+    }
+
+    private void refreshWidgetLayoutRows() {
+        boolean wide = WidgetShelf.LAYOUT_WIDE.equals(
+                choices.getString(WidgetShelf.LAYOUT_KEY, WidgetShelf.LAYOUT_STACKED));
+        widgetLayoutChoice.setText(item(getString(R.string.widget_layout),
+                getString(wide ? R.string.widget_layout_wide : R.string.widget_layout_stacked)));
+        boolean master = choices.getBoolean(WidgetShelf.PREF_KEY,
+                getResources().getBoolean(R.bool.widgets));
+        widgetLayoutChoice.setEnabled(master);
+        widgetLayoutChoice.setAlpha(master ? 1f : 0.38f);
+    }
+
+    /** The app opened when the TV turns on (FPT Play, say), or none: just this home screen. */
+    private void showBootApp(Config config) {
+        bootAppChoice = findViewById(R.id.bootAppChoice);
+        bootAppChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_apps), null, null, null);
+        bootAppChoice.setOnClickListener(v -> chooseBootApp(config));
+        refreshBootAppRow();
+    }
+
+    private void refreshBootAppRow() {
+        String pkg = choices.getString(BootReceiver.PREF_KEY, "");
+        String name = getString(R.string.boot_app_none);
+        if (pkg != null && !pkg.isEmpty()) {
+            try {
+                PackageManager pm = getPackageManager();
+                name = pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();
+            } catch (PackageManager.NameNotFoundException gone) {
+                name = getString(R.string.boot_app_none);
+            }
+        }
+        bootAppChoice.setText(item(getString(R.string.boot_app), name));
+    }
+
+    /** Every app the TV can launch, TV entries first, by name; row one turns it off. */
+    private void chooseBootApp(Config config) {
+        PackageManager pm = getPackageManager();
+        java.util.Map<String, ResolveInfo> unique = new java.util.LinkedHashMap<>();
+        for (String category : new String[]{
+                Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER}) {
+            for (ResolveInfo info : pm.queryIntentActivities(
+                    new Intent(Intent.ACTION_MAIN).addCategory(category), 0)) {
+                if (info.activityInfo == null || !info.activityInfo.exported) continue;
+                String pkg = info.activityInfo.packageName;
+                if (!pkg.equals(getPackageName()) && !unique.containsKey(pkg)) {
+                    unique.put(pkg, info);
+                }
+            }
+        }
+        java.util.List<ResolveInfo> apps = new java.util.ArrayList<>(unique.values());
+        java.text.Collator collator = java.text.Collator.getInstance();
+        apps.sort((a, b) -> collator.compare(
+                a.loadLabel(pm).toString(), b.loadLabel(pm).toString()));
+        String current = choices.getString(BootReceiver.PREF_KEY, "");
+        CharSequence[] labels = new CharSequence[apps.size() + 1];
+        labels[0] = getString(R.string.boot_app_none);
+        int selected = 0;
+        for (int i = 0; i < apps.size(); i++) {
+            labels[i + 1] = apps.get(i).loadLabel(pm);
+            if (apps.get(i).activityInfo.packageName.equals(current)) selected = i + 1;
+        }
+        chooseOne(R.string.boot_app, labels, null, selected, index -> {
+            String pkg = index == 0 ? "" : apps.get(index - 1).activityInfo.packageName;
+            choices.edit().putString(BootReceiver.PREF_KEY, pkg).apply();
+            setResult(RESULT_OK);
+            refreshBootAppRow();
+        }, config);
     }
 
     private boolean confirmKeyPressedHere;
@@ -219,6 +899,7 @@ public final class LauncherSettingsActivity extends Activity {
                 getString(isDefault ? R.string.about_default_yes : R.string.about_default_no)));
         home.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_home), null, null, null);
         home.setOnClickListener(v -> open(new Intent(Settings.ACTION_HOME_SETTINGS)));
+
 
         TextView stock = findViewById(R.id.stockInfo);
         int setting;
@@ -352,66 +1033,69 @@ public final class LauncherSettingsActivity extends Activity {
         }
     }
 
-    private String name() {
-        return choices.getString(NAME_KEY, getString(R.string.greeting_name)).trim();
+
+    private static int checkedIcon(boolean on) {
+        return on ? R.drawable.ic_check_on : R.drawable.ic_check_off;
     }
 
-    private void showName() {
-        String name = name();
-        nameChoice.setText(item(getString(R.string.your_name), name.isEmpty() ? getString(R.string.your_name_none) : name));
+    private void refreshSourcesRow() {
+        List<String> names = new ArrayList<>();
+        for (int index = 0; index < MainActivity.NEWS_SOURCE_KEYS.length; index++) {
+            if (choices.getBoolean(MainActivity.NEWS_SOURCE_KEYS[index],
+                    MainActivity.NEWS_SOURCE_DEFAULTS[index])) {
+                names.add(getString(MainActivity.NEWS_SOURCE_NAMES[index]));
+            }
+        }
+        if (choices.getBoolean(MainActivity.MATCH_24H_KEY, true)) {
+            names.add(getString(R.string.source_match_24h));
+        }
+        if (choices.getBoolean(MainActivity.MATCH_ESPN_KEY, true)) {
+            names.add(getString(R.string.source_match_espn));
+        }
+        String desc = names.isEmpty() ? getString(R.string.source_none) : String.join(", ", names);
+        sourcesChoice.setText(item(getString(R.string.sources), desc));
     }
 
-    private void editName(Config config) {
+    /** A checklist in a dialog: each row toggles its source at once, closing refreshes the row. */
+    private void chooseSources(Config config) {
         Palette p = Palette.currentOrBaseline();
         float d = getResources().getDisplayMetrics().density;
-        LinearLayout panel = dialogPanel(R.string.your_name, p, d);
-
-        EditText field = new EditText(this);
-        field.setSingleLine(true);
-        field.setText(name());
-        field.setSelection(field.getText().length());
-        field.setHint(R.string.your_name);
-        field.setTextSize(18f);
-        field.setTextColor(p.onSurface);
-        field.setHintTextColor(p.onSurfaceVariant);
-        field.setImeOptions(EditorInfo.IME_ACTION_DONE);
-        GradientDrawable box = new GradientDrawable();
-        box.setCornerRadius(Shapes.EXTRA_SMALL * d);
-        box.setStroke((int) (2 * d), p.primary);
-        field.setBackground(box);
-        int fieldPadding = (int) (16 * d);
-        field.setPadding(fieldPadding, fieldPadding, fieldPadding, fieldPadding);
-        LinearLayout.LayoutParams fieldLayout = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        fieldLayout.topMargin = (int) (16 * d);
-        panel.addView(field, fieldLayout);
-
-        LinearLayout buttons = dialogButtonRow(panel, d);
-        TextView cancel = dialogButton(android.R.string.cancel, d);
-        TextView save = dialogButton(R.string.save, d);
-        buttons.addView(cancel);
-        buttons.addView(save);
-        ((LinearLayout.LayoutParams) save.getLayoutParams()).setMarginStart((int) (8 * d));
-
-        Dialog dialog = showDialog(panel, p, config, d);
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        LinearLayout panel = dialogPanel(R.string.sources, p, d);
+        LinearLayout options = dialogOptionList(panel, d);
+        int newsCount = MainActivity.NEWS_SOURCE_KEYS.length;
+        int total = newsCount + 2;
+        TextView[] rows = new TextView[total];
+        String[] keys = new String[total];
+        boolean[] defaults = new boolean[total];
+        for (int index = 0; index < newsCount; index++) {
+            keys[index] = MainActivity.NEWS_SOURCE_KEYS[index];
+            defaults[index] = MainActivity.NEWS_SOURCE_DEFAULTS[index];
+            rows[index] = optionRow(getString(MainActivity.NEWS_SOURCE_NAMES[index]),
+                    checkedIcon(choices.getBoolean(keys[index], defaults[index])));
+            options.addView(rows[index]);
         }
-
-        Runnable commit = () -> {
-            choices.edit().putString(NAME_KEY, field.getText().toString().trim()).apply();
-            showName();
-            dialog.dismiss();
-        };
-        save.setOnClickListener(v -> commit.run());
-        cancel.setOnClickListener(v -> dialog.dismiss());
-        field.setOnEditorActionListener((v, action, event) -> {
-            if (action != EditorInfo.IME_ACTION_DONE) return false;
-            commit.run();
-            return true;
-        });
-        field.requestFocus();
+        keys[newsCount] = MainActivity.MATCH_24H_KEY;
+        defaults[newsCount] = true;
+        rows[newsCount] = optionRow(getString(R.string.source_match_24h),
+                checkedIcon(choices.getBoolean(keys[newsCount], true)));
+        options.addView(rows[newsCount]);
+        keys[newsCount + 1] = MainActivity.MATCH_ESPN_KEY;
+        defaults[newsCount + 1] = true;
+        rows[newsCount + 1] = optionRow(getString(R.string.source_match_espn),
+                checkedIcon(choices.getBoolean(keys[newsCount + 1], true)));
+        options.addView(rows[newsCount + 1]);
+        Dialog dialog = showDialog(panel, p, config, d);
+        for (int index = 0; index < total; index++) {
+            int value = index;
+            rows[index].setOnClickListener(v -> {
+                boolean on = !choices.getBoolean(keys[value], defaults[value]);
+                choices.edit().putBoolean(keys[value], on).apply();
+                rows[value].setCompoundDrawablesRelativeWithIntrinsicBounds(
+                        icon(checkedIcon(on)), null, null, null);
+            });
+        }
+        dialog.setOnDismissListener(ignored -> refreshSourcesRow());
+        rows[0].requestFocus();
     }
 
     private void chooseColumns(Config config) {
@@ -637,6 +1321,30 @@ public final class LauncherSettingsActivity extends Activity {
         turnOff.setOnClickListener(v -> {
             dialog.dismiss();
             runPowerCommand(TURN_OFF_COMMAND);
+        });
+        cancel.requestFocus();
+    }
+
+    /** Back to the defaults: the whole settings file goes, and this sheet is rebuilt on them. */
+    private void confirmResetSettings(Config config) {
+        Palette p = Palette.currentOrBaseline();
+        float d = getResources().getDisplayMetrics().density;
+        LinearLayout panel = dialogHeroPanel(R.drawable.ic_refresh, R.string.reset_settings,
+                R.string.reset_settings_message, p, d);
+
+        LinearLayout buttons = dialogButtonRow(panel, d);
+        TextView cancel = dialogButton(android.R.string.cancel, d);
+        TextView reset = dialogButton(R.string.reset_settings_action, d);
+        buttons.addView(cancel);
+        buttons.addView(reset);
+
+        Dialog dialog = showDialog(panel, p, config, d);
+        cancel.setOnClickListener(v -> dialog.dismiss());
+        reset.setOnClickListener(v -> {
+            dialog.dismiss();
+            choices.edit().clear().apply();
+            setResult(RESULT_OK);
+            recreate();
         });
         cancel.requestFocus();
     }

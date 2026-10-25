@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Google Sans Flex. The clock, heavier: the sans_display instance at wght 700. -->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <font
+        android:font="@font/google_sans_flex"
+        android:fontStyle="normal"
+        android:fontWeight="700"
+        android:fontVariationSettings="'wght' 700, 'ROND' 100, 'opsz' 57"
+        tools:targetApi="28" />
+</font-family>

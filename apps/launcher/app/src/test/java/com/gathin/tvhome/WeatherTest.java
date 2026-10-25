@@ -1,5 +1,6 @@
 package com.gathin.tvhome;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -21,5 +22,19 @@ public class WeatherTest {
         assertEquals(Weather.Sky.SNOW, Weather.sky(86));
         assertEquals(Weather.Sky.THUNDER, Weather.sky(95));
         assertEquals(Weather.Sky.THUNDER, Weather.sky(99));
+    }
+
+    @Test
+    public void rainSoonReadsTheFifteenMinuteSlots() {
+        assertArrayEquals(new int[]{30, -1},
+                Weather.rainSoon(new double[]{0, 0, 0.4, 0.4, 0, 0, 0, 0, 0}));
+        assertArrayEquals(new int[]{-1, 45},
+                Weather.rainSoon(new double[]{0.6, 0.3, 0.2, 0, 0, 0, 0, 0, 0}));
+        assertArrayEquals(new int[]{-1, -1},
+                Weather.rainSoon(new double[]{0, 0, 0, 0, 0, 0, 0, 0, 0}));
+        assertArrayEquals(new int[]{-1, -1},
+                Weather.rainSoon(new double[]{0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5}));
+        assertArrayEquals(new int[]{15, -1},
+                Weather.rainSoon(new double[]{0.05, 0.2, 0, 0, 0, 0, 0, 0, 0}));
     }
 }

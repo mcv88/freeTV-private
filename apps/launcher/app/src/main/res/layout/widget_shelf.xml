@@ -19,37 +19,262 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:id="@+id/weatherPlace"
-                style="@style/WidgetLabel"
-                android:text="@string/weather" />
+            android:orientation="horizontal"
+            android:padding="14dp">
 
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
                 android:layout_weight="1"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/weatherTemp"
-                    style="@style/WidgetValue"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:text="–" />
+                    android:id="@+id/weatherPlace"
+                    style="@style/WidgetLabel"
+                    android:text="@string/weather" />
 
-                <com.gathin.tvhome.ShapeBadge
-                    android:id="@+id/weatherIcon"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.gathin.tvhome.ShapeBadge
+                        android:id="@+id/weatherIcon"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp" />
+
+                    <TextView
+                        android:id="@+id/weatherTemp"
+                        style="@style/WidgetValue"
+                        android:layout_marginStart="10dp"
+                        android:text="–" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/weatherCond"
+                        style="@style/WidgetTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/weatherDetail"
+                        style="@style/WidgetDetail"
+                        android:layout_marginTop="0dp" />
+                </LinearLayout>
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/weatherDetail"
-                style="@style/WidgetDetail" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/chipRainLabel"
+                            style="@style/WidgetChipLabel"
+                            android:text="@string/chip_rain" />
+
+                        <TextView
+                            android:id="@+id/weatherRainValue"
+                            style="@style/WidgetChipValue" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/chipHumidityLabel"
+                            style="@style/WidgetChipLabel"
+                            android:text="@string/chip_humidity" />
+
+                        <TextView
+                            android:id="@+id/weatherHumidityValue"
+                            style="@style/WidgetChipValue" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/chipAqiLabel"
+                            style="@style/WidgetChipLabel"
+                            android:text="@string/chip_aqi" />
+
+                        <TextView
+                            android:id="@+id/weatherAqiValue"
+                            style="@style/WidgetChipValue" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/chipUvLabel"
+                            style="@style/WidgetChipLabel"
+                            android:text="@string/chip_uv" />
+
+                        <TextView
+                            android:id="@+id/weatherUvValue"
+                            style="@style/WidgetChipValue" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/dayName0"
+                            style="@style/WidgetDayName" />
+
+                        <ImageView
+                            android:id="@+id/dayIcon0"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:id="@+id/dayTemp0"
+                            style="@style/WidgetDayTemp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/dayName1"
+                            style="@style/WidgetDayName" />
+
+                        <ImageView
+                            android:id="@+id/dayIcon1"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:id="@+id/dayTemp1"
+                            style="@style/WidgetDayTemp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/dayName2"
+                            style="@style/WidgetDayName" />
+
+                        <ImageView
+                            android:id="@+id/dayIcon2"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:id="@+id/dayTemp2"
+                            style="@style/WidgetDayTemp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/dayName3"
+                            style="@style/WidgetDayName" />
+
+                        <ImageView
+                            android:id="@+id/dayIcon3"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:id="@+id/dayTemp3"
+                            style="@style/WidgetDayTemp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/dayName4"
+                            style="@style/WidgetDayName" />
+
+                        <ImageView
+                            android:id="@+id/dayIcon4"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:id="@+id/dayTemp4"
+                            style="@style/WidgetDayTemp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
     </com.gathin.tvhome.WidgetCard>
 
@@ -195,53 +420,322 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="14dp">
 
-            <TextView
-                android:id="@+id/lunarLabel"
-                style="@style/WidgetLabel"
-                android:text="@string/lunar_calendar" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/lunarDate"
-                style="@style/WidgetValue"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
+                <TextView
+                    android:id="@+id/lunarDate"
+                    style="@style/WidgetValue"
+                    android:text="–" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/lunarMonth"
+                        style="@style/WidgetTitle" />
+
+                    <TextView
+                        android:id="@+id/lunarLabel"
+                        style="@style/WidgetDetail"
+                        android:text="@string/lunar_calendar" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
                 android:layout_weight="1"
-                android:gravity="center_vertical" />
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/holiday"
-                style="@style/WidgetDetail" />
+                <LinearLayout
+                    android:id="@+id/eventRow0"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/eventName0"
+                        style="@style/WidgetEventName"
+                        android:layout_width="match_parent" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/eventWhen0"
+                            style="@style/WidgetDetail"
+                            android:layout_width="0dp"
+                            android:layout_marginTop="0dp"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/eventBadge0"
+                            style="@style/WidgetBadge" />
+                    </LinearLayout>
+                </LinearLayout><LinearLayout
+                    android:id="@+id/eventRow1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/eventName1"
+                        style="@style/WidgetEventName"
+                        android:layout_width="match_parent" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/eventWhen1"
+                            style="@style/WidgetDetail"
+                            android:layout_width="0dp"
+                            android:layout_marginTop="0dp"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/eventBadge1"
+                            style="@style/WidgetBadge" />
+                    </LinearLayout>
+                </LinearLayout><LinearLayout
+                    android:id="@+id/eventRow2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/eventName2"
+                        style="@style/WidgetEventName"
+                        android:layout_width="match_parent" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/eventWhen2"
+                            style="@style/WidgetDetail"
+                            android:layout_width="0dp"
+                            android:layout_marginTop="0dp"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/eventBadge2"
+                            style="@style/WidgetBadge" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
     </com.gathin.tvhome.WidgetCard>
 
     <com.gathin.tvhome.WidgetCard
-        android:id="@+id/widgetAdd"
+        android:id="@+id/widgetPrices"
         android:layout_width="0dp"
         android:layout_height="@dimen/widget_card_height"
-        android:layout_gravity="center_vertical"
-        android:visibility="gone">
+        android:layout_gravity="center_vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingStart="14dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="10dp">
 
-            <ImageView
-                android:id="@+id/widgetAddIcon"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_add" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/widgetAddLabel"
-                style="@style/WidgetLabel"
-                android:layout_width="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/widget_add" />
+                <TextView
+                    android:id="@+id/pricesTitle"
+                    style="@style/WidgetLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/prices" />
+
+                <TextView
+                    android:id="@+id/pricesUpdated"
+                    style="@style/WidgetDetail"
+                    android:layout_width="wrap_content"
+                    android:layout_marginTop="0dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/pricesGoldLabel"
+                    style="@style/WidgetLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/prices_gold" />
+
+                <TextView
+                    android:id="@+id/pricesBuyLabel"
+                    style="@style/WidgetPriceHead"
+                    android:layout_width="62dp"
+                    android:text="@string/prices_buy" />
+
+                <TextView
+                    android:id="@+id/pricesSellLabel"
+                    style="@style/WidgetPriceHead"
+                    android:layout_width="62dp"
+                    android:text="@string/prices_sell" />
+            </LinearLayout>
+
+                    <LinearLayout
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
+
+                        <TextView
+                            android:id="@+id/pricesBarName"
+                            style="@style/WidgetMeterName"
+                            android:text="@string/prices_gold_bar" />
+
+                        <TextView
+                            android:id="@+id/pricesBarBuy"
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="62dp" />
+
+                        <TextView
+                            android:id="@+id/pricesBarSell"
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="62dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
+
+                        <TextView
+                            android:id="@+id/pricesRingName"
+                            style="@style/WidgetMeterName"
+                            android:text="@string/prices_gold_ring" />
+
+                        <TextView
+                            android:id="@+id/pricesRingBuy"
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="62dp" />
+
+                        <TextView
+                            android:id="@+id/pricesRingSell"
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="62dp" />
+                    </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/pricesFuelLabel"
+                    style="@style/WidgetLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/prices_fuel" />
+
+                <TextView
+                    android:id="@+id/pricesRegionLabel"
+                    style="@style/WidgetPriceHead"
+                    android:layout_width="wrap_content"
+                    android:text="@string/prices_region1" />
+            </LinearLayout>
+
+                    <LinearLayout
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
+
+                        <TextView
+                            android:id="@+id/pricesRon95Name"
+                            style="@style/WidgetMeterName"
+                            android:text="@string/prices_fuel_ron95" />
+
+                        <TextView
+                            android:id="@+id/pricesRon95"
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="132dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
+
+                        <TextView
+                            android:id="@+id/pricesE5Name"
+                            style="@style/WidgetMeterName"
+                            android:text="@string/prices_fuel_e5" />
+
+                        <TextView
+                            android:id="@+id/pricesE5"
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="132dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
+
+                        <TextView
+                            android:id="@+id/pricesDieselName"
+                            style="@style/WidgetMeterName"
+                            android:text="@string/prices_fuel_diesel" />
+
+                        <TextView
+                            android:id="@+id/pricesDiesel"
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="132dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        style="@style/WidgetPriceRow"
+                        android:layout_marginTop="3dp">
+
+                        <TextView
+                            android:id="@+id/pricesUsdName"
+                            style="@style/WidgetMeterName"
+                            android:text="@string/prices_usd" />
+
+                        <TextView
+                            android:id="@+id/pricesUsd"
+                            style="@style/WidgetPriceValue"
+                            android:layout_width="132dp" />
+                    </LinearLayout>
         </LinearLayout>
     </com.gathin.tvhome.WidgetCard>
+
 </FrameLayout>

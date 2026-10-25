@@ -48,9 +48,12 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.provider.Settings;
+import android.text.Layout;
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
+import android.text.style.ForegroundColorSpan;
 import android.text.TextUtils;
 import android.view.Choreographer;
 import android.view.Gravity;
@@ -63,6 +66,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.TextClock;
 import android.widget.Toast;
@@ -99,6 +103,43 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
     private static final String COLUMNS_SETTING = "columns";
+    /** How the detail popup covers Home (Launcher settings): blur it all, dim only, or nothing. */
+    static final String POPUP_BLUR_KEY = "popup_blur";
+    static final String HEADLINE_STRIP_KEY = "headline_strip";
+    static final String GREETING_KEY = "greeting";
+    static final String TICKER_LENGTH_KEY = "ticker_length";
+    static final String TICKER_LEN_SHORT = "short";
+    static final String TICKER_LEN_WIFI = "wifi";
+    static final String TICKER_LEN_FULL = "full";
+    static final String TICKER_LEN_CUSTOM = "custom";
+    static final String TICKER_WIDTH_PX_KEY = "ticker_width_px";
+    static final String TICKER_SCROLL_KEY = "ticker_scroll";
+    static final String TICKER_SCROLL_MARQUEE = "marquee";
+    static final String TICKER_SCROLL_MANUAL = "manual";
+    static final String GREETING_TEXT_KEY = "greeting_text";
+    static final String HEADER_BOLD_KEY = "header_bold";
+    /** News sources, one entry per outlet section, in picker order. */
+    static final String[] NEWS_SOURCE_KEYS = {
+            "src_news_tt_thoisu", "src_news_tt_thegioi", "src_news_tt_kinhdoanh",
+            "src_news_vn_thoisu", "src_news_vn_thegioi", "src_news_vn_kinhdoanh",
+            "src_news_bbc", "src_news_rfa"};
+    static final String[] NEWS_SOURCE_URLS = {
+            "https://tuoitre.vn/rss/thoi-su.rss", "https://tuoitre.vn/rss/the-gioi.rss",
+            "https://tuoitre.vn/rss/kinh-doanh.rss", "https://vnexpress.net/rss/thoi-su.rss",
+            "https://vnexpress.net/rss/the-gioi.rss", "https://vnexpress.net/rss/kinh-doanh.rss",
+            "https://feeds.bbci.co.uk/vietnamese/rss.xml",
+            "https://www.rfa.org/arc/outboundfeeds/vietnamese/rss/"};
+    static final int[] NEWS_SOURCE_NAMES = {
+            R.string.source_tt_thoisu, R.string.source_tt_thegioi, R.string.source_tt_kinhdoanh,
+            R.string.source_vn_thoisu, R.string.source_vn_thegioi, R.string.source_vn_kinhdoanh,
+            R.string.source_bbc, R.string.source_rfa};
+    static final boolean[] NEWS_SOURCE_DEFAULTS = {
+            true, true, false, false, false, false, false, false};
+    static final String MATCH_24H_KEY = "src_match_24h";
+    static final String MATCH_ESPN_KEY = "src_match_espn";
+    static final String POPUP_BLUR_ALL = "all";
+    static final String POPUP_BLUR_DIM = "dim";
+    static final String POPUP_BLUR_OFF = "off";
     private SharedPreferences settingsPreferences;
     private Config homeConfig;
     private final SharedPreferences.OnSharedPreferenceChangeListener liveSettings = (preferences, key) -> {
@@ -115,6 +156,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean rtlAppGrid;
     private static final long MINUTE_MS = 60_000L;
     private static final long STATS_MS = 10_000L;
+    private static final long WARNING_RETRY_MS = 5 * 60_000L;
     private String liveTvPkg;
     private String liveTvAction;
     private String inputAction;
@@ -139,7 +181,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean heroShown;
     private boolean animations;
     private boolean advancedEffects;
+    private TextView headlineStrip;
     private TextView greeting;
+    private boolean warningFetching;
+    private long warningFailure;
+    private List<String> headlines = new ArrayList<>();
+    private List<String> matches = new ArrayList<>();
+    private List<String> espn = new ArrayList<>();
+    private List<String> lastNewsUrls = new ArrayList<>();
+    private List<String> headlineItems = new ArrayList<>();
     private View btnInputs;
     private TextView btnSleepTimer;
     private PopupWindow inputsPopup;
@@ -149,8 +199,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
     private boolean shamsi;
-    /** greeting_name: said after the greeting, which is shown in capitals. */
-    private String greetingName = "";
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
     private String vpnApp;
@@ -181,7 +229,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private DiyaDrawable diya;
     private BellDrawable bell;
     private MarigoldDrawable marigold;
-    private int greetingColor;
     /** The day the petal shower last played, so it greets the first Home of each day only. */
     private static LocalDate lastPetalShower;
     /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
@@ -196,6 +243,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean rebuildOnResume = true;
     /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
     private PopupWindow openPopup;
+    private View detailScrim;
     /** Reorder mode is on (top-bar button). */
     private boolean reordering;
     /** Key of the tile being carried in reorder mode, or null. */
@@ -235,6 +283,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView editBarTitle, editBarHint;
     /** The widgets between the header and the dock; shown only with the dock layout. */
     private WidgetShelf widgets;
+    private View shelfView;
+    private String shelfLayout;
     private FocusIndicator focusIndicator;
     /** The clock's divider line, tinted with the scheme. */
     private View clockDivider;
@@ -305,12 +355,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final Runnable minuteTick = new Runnable() {
         @Override
         public void run() {
-            updateGreeting();
             updateWifiLabel();
             sky.update();
             wallpaperPlayer.update();
             if (widgets != null) widgets.tick();
             handler.postDelayed(this, MINUTE_MS);
+        }
+    };
+    private final Runnable headlineTick = new Runnable() {
+        @Override
+        public void run() {
+            refreshHeadlines();
+            refreshMatches();
+            refreshEspn();
+            refreshStripWarnings();
+            refreshHeadline();
+            refreshGreeting();
+            handler.postDelayed(this, 10_000);
         }
     };
 
@@ -358,14 +419,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName = findViewById(R.id.heroName);
         // dock_title false: the name above the dock never shows; the glow still follows the dock.
         if (!cfg.dockTitle) heroName.setVisibility(View.GONE);
+        headlineStrip = findViewById(R.id.headlineStrip);
         greeting = findViewById(R.id.greeting);
-        greetingColor = greeting.getCurrentTextColor();
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
         stats = findViewById(R.id.stats);
         showStats = cfg.showStats;
         shamsi = cfg.shamsiDate;
-        greetingName = cfg.greetingName;
         // Compact header: the date short and in the TV's language ("Wed, 21 Oct", "Th 4, 21 thg 10").
         String shortDate = android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEdMMM");
         TextClock dateClock = findViewById(R.id.date);
@@ -485,33 +545,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // The widget shelf shares the grid's frame, so its cards can sit exactly over the dock's columns.
         ViewGroup gridFrame = (ViewGroup) grid.getParent();
-        View shelfView = getLayoutInflater().inflate(R.layout.widget_shelf, gridFrame, false);
-        gridFrame.addView(shelfView);
-        widgets = new WidgetShelf(this, shelfView, animations, reducedMotion, advancedEffects, new WidgetShelf.Host() {
-            @Override
-            public void showMenu(View anchor, List<WidgetShelf.MenuItem> items) {
-                showWidgetMenu(anchor, items);
-            }
+        buildShelf(gridFrame);
 
-            @Override
-            public void slotsChanged() {
-                pointHeaderDown();
-            }
-
-            @Override
-            public void carryChanged() {
-                updateEditBar();
-            }
-
-            @Override
-            public boolean startEditing() {
-                return reordering || beginReorder();
-            }
-        });
-        widgets.setOnDown(column -> {
-            focusTile(Math.min(column, Math.max(0, adapter.dockFilled() - 1)));
-            grid.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
-        });
         grid.getViewTreeObserver().addOnGlobalLayoutListener(() -> widgets.align(grid, COLUMNS,
                 grid.getTop() + grid.getPaddingTop() - (int) (DockDecoration.PADDING_DP * density)));
 
@@ -710,6 +745,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cameBackFromBackground = false;
         Palette.loadDarkMode(this);
         updateWidgets();
+        int wantedColumns = settingsPreferences.getInt(COLUMNS_SETTING, homeConfig.columns);
+        if (wantedColumns != COLUMNS) applyColumns(wantedColumns);
         if (Palette.current() != null && Palette.current() != shownPalette) applyPalette(Palette.current());
         // The shapes start turning once the return transition is over, so they never compete with it.
         if (backdrop != null) handler.postDelayed(startBackdrop, BACKDROP_RESUME_DELAY_MS);
@@ -731,7 +768,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         rebuildOnResume = false;
-        updateGreeting();
+        applyHeaderBold();
+        refreshGreeting();
+        refreshHeadlines();
+        refreshMatches();
+        refreshEspn();
+        refreshHeadline();
+        applyStripWidth();
+        handler.postDelayed(headlineTick, 10_000);
         updateWifiLabel();
         updateInputsButton();
         if (showStats) startStats();
@@ -965,6 +1009,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.animate().cancel();
         ambient.animate().cancel();
         handler.removeCallbacks(minuteTick);
+        handler.removeCallbacks(headlineTick);
+        stopTickerScroll();
         stopStats();
         if (diya != null) diya.stop();
         cancelPendingFocusScroll();
@@ -1336,8 +1382,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ((TextView) findViewById(R.id.date)).setTextColor(p.onSurfaceVariant);
         ((TextView) findViewById(R.id.shamsiDate)).setTextColor(p.onSurfaceVariant);
         ((TextView) findViewById(R.id.stats)).setTextColor(p.onSurfaceVariant);
-        greetingColor = p.onSurface;
-        if (!festive) greeting.setTextColor(greetingColor);
         heroName.setTextColor(p.onSurface);
         if (clockDivider == null) clockDivider = findViewById(R.id.clockDivider);
         if (clockDivider != null) clockDivider.setBackgroundColor(p.outlineVariant);
@@ -1393,6 +1437,35 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * exactly as tall as the digits' cap height and standing on that baseline, and the button group
      * centred on the digits. Done with translations, so it never re-enters layout.
      */
+    private void refreshGreeting() {
+        if (greeting == null) return;
+        if (!settingsPreferences.getBoolean(GREETING_KEY, false)) {
+            greeting.setVisibility(View.GONE);
+            return;
+        }
+        String custom = settingsPreferences.getString(GREETING_TEXT_KEY, "");
+        greeting.setText(custom != null && !custom.isEmpty() ? custom : timeGreeting());
+        greeting.setVisibility(View.VISIBLE);
+    }
+
+    private String timeGreeting() {
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        if (hour >= 5 && hour < 11) return getString(R.string.greeting_morning);
+        if (hour >= 11 && hour < 13) return getString(R.string.greeting_midday);
+        if (hour >= 13 && hour < 18) return getString(R.string.greeting_afternoon);
+        return getString(R.string.greeting_evening);
+    }
+
+    private void applyHeaderBold() {
+        boolean bold = settingsPreferences.getBoolean(HEADER_BOLD_KEY, false);
+        TextView clock = findViewById(R.id.clock);
+        TextView date = findViewById(R.id.date);
+        clock.setTypeface(getResources().getFont(bold
+                ? R.font.sans_display_bold : R.font.sans_display));
+        date.setTypeface(getResources().getFont(bold
+                ? R.font.sans_medium : R.font.sans_regular));
+    }
+
     private void alignHeader() {
         TextView clock = findViewById(R.id.clock);
         TextView date = findViewById(R.id.date);
@@ -1404,7 +1477,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float cap = -digit.top;
         float clockBaseline = yInRoot(clock) + clock.getBaseline();
 
-        // At a Glance: the greeting-and-date stack centred on the digits, like the header buttons.
         View dateBlock = (View) date.getParent();
         float stackCentre = yInRoot(dateBlock) + dateBlock.getHeight() / 2f;
         dateBlock.setTranslationY(clockBaseline - cap / 2f - stackCentre);
@@ -1419,6 +1491,54 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             float centre = yInRoot(buttonsGroup) + buttonsGroup.getHeight() / 2f;
             buttonsGroup.setTranslationY(clockBaseline - cap / 2f - centre);
         }
+        if (headlineStrip != null && headlineStrip.getHeight() > 0) {
+            int indent = Math.round(xInRoot(dateBlock) - xInRoot(headlineStrip));
+            if (headlineStrip.getPaddingStart() != indent) {
+                headlineStrip.setPadding(indent, headlineStrip.getPaddingTop(),
+                        headlineStrip.getPaddingEnd(), headlineStrip.getPaddingBottom());
+            }
+        }
+        applyStripWidth();
+    }
+
+    private void applyStripWidth() {
+        if (headlineStrip == null || headlineStrip.getHeight() == 0) return;
+        RelativeLayout.LayoutParams params =
+                (RelativeLayout.LayoutParams) headlineStrip.getLayoutParams();
+        String length = settingsPreferences.getString(TICKER_LENGTH_KEY, TICKER_LEN_WIFI);
+        if (TICKER_LEN_SHORT.equals(length)) {
+            if (params.getRule(RelativeLayout.ALIGN_END) == R.id.leftBlock) return;
+            params.addRule(RelativeLayout.ALIGN_END, R.id.leftBlock);
+            headlineStrip.setLayoutParams(params);
+            return;
+        }
+        int width;
+        if (TICKER_LEN_CUSTOM.equals(length)) {
+            width = Math.max(0, settingsPreferences.getInt(TICKER_WIDTH_PX_KEY, 0));
+        } else {
+            int stripLeft = Math.round(xInRoot(headlineStrip));
+            int gap = Math.round(12 * density);
+            int right;
+            if (TICKER_LEN_FULL.equals(length)) {
+                View parent = (View) headlineStrip.getParent();
+                if (parent == null || parent.getWidth() == 0) return;
+                right = Math.round(xInRoot(parent)) + parent.getWidth();
+            } else {
+                if (btnWifi == null || btnWifi.getWidth() == 0) return;
+                right = Math.round(xInRoot(btnWifi));
+            }
+            width = Math.max(0, right - gap - stripLeft);
+        }
+        if (params.getRule(RelativeLayout.ALIGN_END) == 0 && params.width == width) return;
+        params.removeRule(RelativeLayout.ALIGN_END);
+        params.width = width;
+        headlineStrip.setLayoutParams(params);
+    }
+
+    private float xInRoot(View v) {
+        Rect r = new Rect(0, 0, 0, 0);
+        root.offsetDescendantRectToMyCoords(v, r);
+        return r.left;
     }
 
     /** A view's top in root coordinates from layout alone (translations ignored). */
@@ -1465,14 +1585,93 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return Motion.DEFAULT_SPATIAL;
     }
 
+    /** Inflates the widget shelf in the arrangement settings asks for, and wires it to the dock. */
+    private void buildShelf(ViewGroup gridFrame) {
+        SharedPreferences settings = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        shelfLayout = WidgetShelf.layoutMode(settings);
+        shelfView = getLayoutInflater().inflate(WidgetShelf.layoutRes(settings), gridFrame, false);
+        gridFrame.addView(shelfView);
+        widgets = new WidgetShelf(this, shelfView, animations, reducedMotion, advancedEffects, new WidgetShelf.Host() {
+            @Override
+            public void showMenu(View anchor, List<WidgetShelf.MenuItem> items) {
+                showWidgetMenu(anchor, items);
+            }
+
+            @Override
+            public void slotsChanged() {
+                pointHeaderDown();
+            }
+
+            @Override
+            public void carryChanged() {
+                updateEditBar();
+            }
+
+            @Override
+            public boolean startEditing() {
+                return reordering || beginReorder();
+            }
+
+            @Override
+            public void showDetail(View anchor, View panel) {
+                PopupWindow popup = glassPopup(panel, (int) (560 * density));
+                coverBehind(popup);
+                skin(panel);
+                panel.measure(View.MeasureSpec.makeMeasureSpec((int) (560 * density),
+                                View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec((int) (root.getHeight() * 0.85f),
+                                View.MeasureSpec.AT_MOST));
+                popup.setHeight(panel.getMeasuredHeight());
+                popup.showAtLocation(root, Gravity.CENTER, 0, 0);
+            }
+        });
+        widgets.setOnDown(column -> {
+            focusTile(Math.min(column, Math.max(0, adapter.dockFilled() - 1)));
+            grid.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
+        });
+        if (shownPalette != null) widgets.setPalette(shownPalette);
+    }
+
+    private void coverBehind(PopupWindow popup) {
+        clearCover();
+        String mode = settingsPreferences.getString(POPUP_BLUR_KEY, POPUP_BLUR_ALL);
+        if (!POPUP_BLUR_OFF.equals(mode)) {
+            detailScrim = new View(this);
+            detailScrim.setBackgroundColor(Color.argb(110, 0, 0, 0));
+            root.addView(detailScrim, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            if (POPUP_BLUR_ALL.equals(mode)) setBlur(root, 14 * density);
+        }
+        popup.setOnDismissListener(() -> {
+            if (openPopup == popup) openPopup = null;
+            clearCover();
+        });
+    }
+
+    private void clearCover() {
+        setBlur(root, 0f);
+        if (detailScrim != null) {
+            root.removeView(detailScrim);
+            detailScrim = null;
+        }
+    }
+
     /**
      * Shows the widget shelf when Launcher settings has it on (and Home has a dock to sit above), and
      * points the header buttons' Down at it or at the grid.
      */
     private void updateWidgets() {
+        SharedPreferences settings = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        if (!WidgetShelf.layoutMode(settings).equals(shelfLayout)) {
+            widgets.stop();
+            ViewGroup frame = (ViewGroup) shelfView.getParent();
+            frame.removeView(shelfView);
+            buildShelf(frame);
+        }
         boolean on = dockRow && getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
                 .getBoolean(WidgetShelf.PREF_KEY, getResources().getBoolean(R.bool.widgets));
         widgets.setEnabled(on);
+        widgets.refreshOrder();
         pointHeaderDown();
         widgets.start();
     }
@@ -2031,27 +2230,292 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     // ---- top bar ---------------------------------------------------------------------------------
 
-    private void updateGreeting() {
-        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        int res;
-        if (hour < 5) res = R.string.good_night;
-        else if (hour < 12) res = R.string.good_morning;
-        else if (hour < 17) res = R.string.good_afternoon;
-        else if (hour < 22) res = R.string.good_evening;
-        else res = R.string.good_night;
-        String festiveGreeting = festive ? festival.greetingText() : "";
-        if (!festiveGreeting.isEmpty()) {
-            greeting.setText(festiveGreeting);
-            greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
-        } else {
-            // The owner's name from Launcher settings, else greeting_name (config.xml or a theme).
-            String name = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
-                    .getString(LauncherSettingsActivity.NAME_KEY, greetingName).trim();
-            greeting.setText(name.isEmpty() ? getString(res)
-                    : getString(R.string.greeting_with_name, getString(res), name));
-            greeting.setTextColor(greetingColor);
+    private List<String> enabledNewsUrls() {
+        List<String> urls = new ArrayList<>();
+        for (int index = 0; index < NEWS_SOURCE_KEYS.length; index++) {
+            boolean on = settingsPreferences.getBoolean(NEWS_SOURCE_KEYS[index],
+                    NEWS_SOURCE_DEFAULTS[index]);
+            if (on) urls.add(NEWS_SOURCE_URLS[index]);
         }
-        if (shamsi) shamsiDate.setText(Shamsi.today());
+        return urls;
+    }
+
+    private void refreshHeadlines() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        List<String> urls = enabledNewsUrls();
+        if (urls.isEmpty()) {
+            if (!headlines.isEmpty()) {
+                headlines = new ArrayList<>();
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            }
+            lastNewsUrls = urls;
+            return;
+        }
+        boolean urlsChanged = !urls.equals(lastNewsUrls);
+        if (!headlines.isEmpty() && !NewsFeed.stale(this, System.currentTimeMillis())
+                && !urlsChanged) return;
+        new Thread(() -> {
+            List<String> fresh = NewsFeed.fetch(this, urls);
+            handler.post(() -> {
+                headlines = fresh;
+                lastNewsUrls = urls;
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            });
+        }).start();
+    }
+
+    private void refreshMatches() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        if (!settingsPreferences.getBoolean(MATCH_24H_KEY, true)) {
+            if (!matches.isEmpty()) {
+                matches = new ArrayList<>();
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            }
+            return;
+        }
+        if (!matches.isEmpty() && !MatchesFeed.stale(this, System.currentTimeMillis())) return;
+        new Thread(() -> {
+            List<String> fresh = MatchesFeed.fetch(this);
+            handler.post(() -> {
+                matches = fresh;
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            });
+        }).start();
+    }
+
+    private void refreshEspn() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        if (!settingsPreferences.getBoolean(MATCH_ESPN_KEY, true)) {
+            if (!espn.isEmpty()) {
+                espn = new ArrayList<>();
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            }
+            return;
+        }
+        if (!espn.isEmpty() && !EspnFeed.stale(this, System.currentTimeMillis())) return;
+        new Thread(() -> {
+            List<String> fresh = EspnFeed.fetch(this);
+            handler.post(() -> {
+                espn = fresh;
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            });
+        }).start();
+    }
+
+    private void rebuildHeadlineRotation() {
+        List<String> items = new ArrayList<>();
+        for (String line : headlines) if (!items.contains(line)) items.add(line);
+        for (String line : matches) if (!items.contains(line)) items.add(line);
+        for (String line : espn) if (!items.contains(line)) items.add(line);
+        headlineItems = items;
+    }
+
+    private void refreshStripWarnings() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        long now = System.currentTimeMillis();
+        Weather.Report weather = Weather.cached(this);
+        AirQuality.Report air = AirQuality.cached(this);
+        boolean weatherStale = weather == null || weather.stale(now);
+        boolean airStale = air == null || air.stale(now);
+        if (!weatherStale && !airStale) return;
+        if (warningFetching || now - warningFailure < WARNING_RETRY_MS) return;
+        warningFetching = true;
+        Context app = getApplicationContext();
+        String city = settingsPreferences.getString(WidgetShelf.CITY_KEY,
+                getString(R.string.weather_city).trim());
+        new Thread(() -> {
+            boolean ok = false;
+            try {
+                if (weatherStale) {
+                    Weather.fetch(app, city);
+                    ok = true;
+                }
+            } catch (Exception ignored) {
+            }
+            try {
+                if (airStale) {
+                    AirQuality.fetch(app, city);
+                    ok = true;
+                }
+            } catch (Exception ignored) {
+            }
+            boolean fetched = ok;
+            handler.post(() -> {
+                warningFetching = false;
+                if (!fetched) warningFailure = System.currentTimeMillis();
+                refreshHeadline();
+            });
+        }, "strip-warnings").start();
+    }
+
+    private void refreshHeadline() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) {
+            stopTickerScroll();
+            headlineStrip.setVisibility(View.GONE);
+            return;
+        }
+        List<String> ticker = new ArrayList<>();
+        String rain = rainLine();
+        if (rain != null) ticker.add(rain);
+        String uv = uvLine();
+        if (uv != null) ticker.add(uv);
+        String air = airLine();
+        if (air != null) ticker.add(air);
+        String today = todayLine();
+        if (today != null) ticker.add(today);
+        String tomorrow = tomorrowLine();
+        if (tomorrow != null) ticker.add(tomorrow);
+        for (String line : headlineItems) if (!ticker.contains(line)) ticker.add(line);
+        if (ticker.isEmpty()) {
+            stopTickerScroll();
+            headlineStrip.setVisibility(View.GONE);
+            return;
+        }
+        SpannableStringBuilder joined = new SpannableStringBuilder();
+        for (int i = 0; i < ticker.size(); i++) {
+            if (i > 0) {
+                int start = joined.length();
+                joined.append("   •   ");
+                joined.setSpan(new ForegroundColorSpan(0xA6FFFFFF), start, joined.length(),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            joined.append(ticker.get(i));
+        }
+        if (!joined.toString().equals(headlineStrip.getText().toString())) {
+            headlineStrip.setText(joined);
+        }
+        headlineStrip.setVisibility(View.VISIBLE);
+        applyTickerScrollMode();
+    }
+
+    private void applyTickerScrollMode() {
+        String mode = settingsPreferences.getString(TICKER_SCROLL_KEY, TICKER_SCROLL_MARQUEE);
+        if (TICKER_SCROLL_MANUAL.equals(mode)) {
+            if (headlineStrip.getEllipsize() != null) headlineStrip.setEllipsize(null);
+            headlineStrip.setSelected(false);
+            startTickerScroll();
+            return;
+        }
+
+        stopTickerScroll();
+        if (headlineStrip.getEllipsize() != TextUtils.TruncateAt.MARQUEE) {
+            headlineStrip.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        }
+        if (headlineStrip.getMarqueeRepeatLimit() != -1) {
+            headlineStrip.setMarqueeRepeatLimit(-1);
+        }
+        headlineStrip.setSelected(true);
+    }
+
+    private static final int TICKER_STEP_MS = 16;
+    private static final int TICKER_STEP_PX = 2;
+    private static final int TICKER_WRAP_PAUSE_MS = 1200;
+    private boolean tickerScrolling;
+    private final Runnable tickerScroll = new Runnable() {
+        @Override public void run() {
+            tickerScrolling = false;
+            stepTickerScroll();
+        }
+    };
+
+    private void startTickerScroll() {
+        if (tickerScrolling) return;
+        tickerScrolling = true;
+        handler.post(tickerScroll);
+    }
+
+    private void stopTickerScroll() {
+        tickerScrolling = false;
+        handler.removeCallbacks(tickerScroll);
+    }
+
+    private void stepTickerScroll() {
+        if (headlineStrip == null || headlineStrip.getVisibility() != View.VISIBLE) return;
+
+        Layout layout = headlineStrip.getLayout();
+        if (layout == null || layout.getLineCount() == 0) {
+            handler.postDelayed(tickerScroll, TICKER_STEP_MS);
+            tickerScrolling = true;
+            return;
+        }
+
+        int viewWidth = headlineStrip.getWidth()
+                - headlineStrip.getPaddingStart() - headlineStrip.getPaddingEnd();
+        int textWidth = Math.round(layout.getLineWidth(0));
+        int maxScroll = textWidth - viewWidth;
+        if (maxScroll <= 0) {
+            headlineStrip.scrollTo(0, 0);
+            return;
+        }
+
+        int next = headlineStrip.getScrollX() + TICKER_STEP_PX;
+        if (next >= maxScroll) {
+            headlineStrip.scrollTo(0, 0);
+            handler.postDelayed(tickerScroll, TICKER_WRAP_PAUSE_MS);
+        } else {
+            headlineStrip.scrollTo(next, 0);
+            handler.postDelayed(tickerScroll, TICKER_STEP_MS);
+        }
+        tickerScrolling = true;
+    }
+
+    private String uvLine() {
+        Weather.Report report = Weather.cached(this);
+        if (report == null) return null;
+        long ageMinutes = (System.currentTimeMillis() - report.fetchedAt) / 60_000;
+        if (ageMinutes > 120 || report.uv < 6) return null;
+        return getString(R.string.chip_uv) + " " + Math.round(report.uv) + " · "
+                + getString(Weather.uvLabel(report.uv));
+    }
+
+    private String airLine() {
+        AirQuality.Report air = AirQuality.cached(this);
+        if (air == null || air.stale(System.currentTimeMillis())) return null;
+        AirQuality.Level level = AirQuality.level(air.aqi);
+        if (level == AirQuality.Level.GOOD || level == AirQuality.Level.MODERATE) return null;
+        return getString(AirQuality.label(level)) + ", PM2.5 " + air.pm25 + " µg/m³";
+    }
+
+    private String todayLine() {
+        Weather.Report report = Weather.cached(this);
+        if (report == null) return null;
+        long ageMinutes = (System.currentTimeMillis() - report.fetchedAt) / 60_000;
+        if (ageMinutes > 120) return null;
+        return getString(R.string.ticker_today, getString(Weather.label(Weather.sky(report.code))),
+                Math.round(report.temp), Math.round(report.low), Math.round(report.high));
+    }
+
+    private String tomorrowLine() {
+        Weather.Report report = Weather.cached(this);
+        if (report == null) return null;
+        long ageMinutes = (System.currentTimeMillis() - report.fetchedAt) / 60_000;
+        if (ageMinutes > 120) return null;
+        return getString(R.string.ticker_tomorrow,
+                getString(Weather.label(Weather.sky(report.tomorrowCode))),
+                Math.round(report.tomorrowLow), Math.round(report.tomorrowHigh));
+    }
+
+    private String rainLine() {
+        Weather.Report report = Weather.cached(this);
+        if (report == null) return null;
+        long ageMinutes = (System.currentTimeMillis() - report.fetchedAt) / 60_000;
+        if (ageMinutes > 120) return null;
+        if (report.rainInMinutes >= 0) {
+            long startsIn = report.rainInMinutes - ageMinutes;
+            if (startsIn > 0) return getString(R.string.rain_soon_in, (int) startsIn);
+            return null;
+        }
+        if (report.rainStopsInMinutes >= 0) {
+            long stopsIn = report.rainStopsInMinutes - ageMinutes;
+            if (stopsIn > 0) return getString(R.string.rain_stops_in, (int) stopsIn);
+        }
+        return null;
     }
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */

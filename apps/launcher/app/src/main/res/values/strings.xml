@@ -10,10 +10,6 @@
     <string name="not_connected">No device</string>
     <string name="live_tv">Live TV</string>
     <string name="no_inputs">No inputs found</string>
-    <string name="good_morning">Good morning</string>
-    <string name="good_afternoon">Good afternoon</string>
-    <string name="good_evening">Good evening</string>
-    <string name="good_night">Good night</string>
     <string name="ethernet">Ethernet</string>
     <string name="offline">Offline</string>
     <string name="not_available">Not available on this TV</string>
@@ -38,6 +34,8 @@
     <string name="follow_theme">Follow theme (reset on-TV choices)</string>
     <string name="follow_theme_hint">Uses the current theme or built-in layout and motion settings. Pushing or resetting a theme also clears your on-TV choices.</string>
     <string name="tv_settings">TV system settings</string>
+    <string name="boot_app">App to open when the TV turns on</string>
+    <string name="boot_app_none">None — just the home screen</string>
     <string name="quick_picture">Display</string>
     <string name="quick_sleep_timer_hint">Find this option in TV settings</string>
     <string name="quick_sleep_timer">Sleep timer</string>
@@ -100,11 +98,41 @@
         <item quantity="one">%1$d app</item>
         <item quantity="other">%1$d apps</item>
     </plurals>
-    <!-- The greeting, then greeting_name: "Good morning, Mr. Trịnh". -->
-    <string name="greeting_with_name">%1$s, %2$s</string>
 
     <!-- Home widgets (WidgetShelf) -->
     <string name="widgets">Widgets</string>
+    <string name="widget_layout">Card layout</string>
+    <string name="widget_tap">Tapping a card</string>
+    <string name="widget_tap_detail">Open the details popup</string>
+    <string name="widget_tap_classic">As before — flip pages</string>
+    <string name="popup_blur">Popup background</string>
+    <string name="popup_blur_all">Blur the whole home screen</string>
+    <string name="popup_blur_dim">Dim only, no blur</string>
+    <string name="popup_blur_off">Nothing</string>
+    <string name="reset_settings">Reset settings</string>
+    <string name="reset_settings_desc">Back to the defaults</string>
+    <string name="reset_settings_message">Columns, widgets, the app opened when the TV turns on, the name and the look — everything returns to its default.</string>
+    <string name="reset_settings_action">Reset</string>
+    <string name="widget_layout_stacked">Stacked</string>
+    <string name="widget_layout_wide">Wide</string>
+    <string name="widget_card_height">Card height</string>
+    <string name="widget_width">Width</string>
+    <string name="widget_width_tiny">Very narrow</string>
+    <string name="widget_width_narrow">Narrow</string>
+    <string name="widget_width_medium">Medium</string>
+    <string name="widget_width_wide">Wide</string>
+    <string name="widget_width_widest">Very wide</string>
+    <string name="widget_height_value">%1$ddp</string>
+    <string name="detail_high">High</string>
+    <string name="detail_low">Low</string>
+    <string name="detail_rain_chance">Chance of rain today</string>
+    <string name="detail_wind">Wind</string>
+    <string name="detail_tomorrow">Tomorrow</string>
+    <string name="detail_forecast">The next 5 days</string>
+    <string name="detail_upcoming">Coming up</string>
+    <string name="detail_solar">Solar date</string>
+    <string name="detail_sources_prices">Sources: vang.today · Petrolimex region 1 · Vietcombank</string>
+    <string name="detail_no_data">No data yet — check back in a moment</string>
     <string name="weather">Weather</string>
     <string name="widget_system">This TV</string>
     <string name="widget_ram">Memory</string>
@@ -124,6 +152,13 @@
     <string name="holiday_mid_autumn">Mid-Autumn Festival</string>
     <string name="holiday_national_day">National Day</string>
     <string name="holiday_christmas">Christmas</string>
+    <string name="holiday_teachers">Teachers\' Day</string>
+    <string name="holiday_womens_day">Vietnamese Women\'s Day</string>
+    <string name="holiday_full_moon">Full moon (month %1$d)</string>
+    <string name="lunar_month">Month %1$d</string>
+    <string name="badge_today">Today</string>
+    <string name="badge_tomorrow">Tomorrow</string>
+    <string name="badge_in_days">in %1$d days</string>
     <string name="weather_clear">Clear</string>
     <string name="weather_partly">Partly cloudy</string>
     <string name="weather_cloudy">Cloudy</string>
@@ -138,7 +173,6 @@
     <string name="weather_tomorrow">%s tomorrow</string>
     <string name="weather_tomorrow_detail">Low %1$d°, %2$d%% rain</string>
     <string name="weather_offline">Can\'t reach the weather service</string>
-    <string name="widget_add">Add widget</string>
     <string name="widget_remove">Remove</string>
 
     <!-- Edit Home (apps, dock and widgets) -->
@@ -155,9 +189,89 @@
     <!-- Air quality widget -->
     <string name="air_quality">Air quality</string>
     <string name="air_tomorrow">%s tomorrow</string>
-    <string name="air_detail">%1$s, PM2.5 %2$d</string>
+    <string name="air_detail">%1$s, PM2.5 %2$d µg/m³</string>
     <string name="air_detail_tomorrow">%s at its worst</string>
     <string name="air_offline">Can\'t reach the air quality service</string>
+
+    <!-- Weather card details -->
+    <string name="weather_high_low">High %1$d° · Low %2$d°</string>
+    <string name="chip_rain">Rain</string>
+    <string name="chip_humidity">Humidity</string>
+    <string name="chip_aqi">AQI</string>
+    <string name="chip_uv">UV</string>
+    <string name="uv_low">Low</string>
+    <string name="uv_moderate">Moderate</string>
+    <string name="uv_high">High</string>
+    <string name="uv_very_high">Very high</string>
+    <string name="uv_extreme">Extreme</string>
+
+    <!-- Prices widget -->
+    <string name="prices">Prices</string>
+    <string name="prices_updated">Updated %s</string>
+    <string name="rain_soon_in">Rain in about %1$d minutes</string>
+    <string name="rain_stops_in">Raining now — stops in about %1$d minutes</string>
+    <string name="rain_none">No rain in the next two hours</string>
+    <string name="headline_match_prefix">Tonight</string>
+    <string name="headline_match_live">Live now</string>
+    <string name="headline_match_finished">Full time</string>
+    <string name="header_bold">Bold clock and date</string>
+    <string name="header_bold_desc">Heavier type for the clock and the date line</string>
+    <string name="widget_section_desc">Cards, layout, tap action and card sizes</string>
+    <string name="headline_strip">Headline strip</string>
+    <string name="headline_strip_desc">Rain, high-UV and bad-air warnings, weather today and tomorrow, hot news, matches tonight, in the header</string>
+    <string name="sources">News sources</string>
+    <string name="source_none">No sources selected</string>
+    <string name="source_tt_thoisu">Tuổi Trẻ Thời sự</string>
+    <string name="source_tt_thegioi">Tuổi Trẻ Thế giới</string>
+    <string name="source_tt_kinhdoanh">Tuổi Trẻ Kinh doanh</string>
+    <string name="source_vn_thoisu">VnExpress Thời sự</string>
+    <string name="source_vn_thegioi">VnExpress Thế giới</string>
+    <string name="source_vn_kinhdoanh">VnExpress Kinh doanh</string>
+    <string name="source_bbc">BBC Tiếng Việt</string>
+    <string name="source_rfa">RFA Tiếng Việt</string>
+    <string name="source_match_24h">24h V.League</string>
+    <string name="source_match_espn">ESPN big 5 leagues</string>
+    <string name="ticker_today">Today: %1$s %2$d°, %3$d–%4$d°</string>
+    <string name="ticker_tomorrow">Tomorrow: %1$s, %2$d–%3$d°</string>
+    <string name="header_section">Header</string>
+    <string name="header_section_desc">Headline strip, news sources, greeting, header text style</string>
+    <string name="look_section">Appearance</string>
+    <string name="look_section_desc">Colours, background, effects, screensaver</string>
+    <string name="system_section">System</string>
+    <string name="system_section_desc">TV settings, boot app, reboot, reset</string>
+    <string name="ticker_length">Ticker length</string>
+    <string name="ticker_scroll">Ticker scroll style</string>
+    <string name="ticker_scroll_marquee">System marquee</string>
+    <string name="ticker_scroll_manual">Manual scroll</string>
+    <string name="ticker_len_short">Short</string>
+    <string name="ticker_len_wifi">To the Wi-Fi icon</string>
+    <string name="ticker_len_full">Full width</string>
+    <string name="ticker_len_custom">Custom (px)</string>
+    <string name="ticker_len_custom_value">Custom: %1$d px</string>
+    <string name="about_section">About</string>
+    <string name="about_section_desc">Version, source code</string>
+    <string name="greeting">Greeting line</string>
+    <string name="greeting_desc">Time-based greeting in the header</string>
+    <string name="greeting_text">Greeting text</string>
+    <string name="greeting_text_auto">Automatic by time of day</string>
+    <string name="greeting_text_hint">Leave empty for the automatic greeting</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_midday">Good afternoon</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="prices_gold">Gold · ₫m/tael</string>
+    <string name="prices_buy">Buy</string>
+    <string name="prices_sell">Sell</string>
+    <string name="prices_gold_bar">SJC gold bar</string>
+    <string name="prices_gold_ring">9999 gold ring</string>
+    <string name="prices_fuel">Fuel · ₫/litre</string>
+    <string name="prices_region1">Region 1</string>
+    <string name="prices_fuel_ron95">Petrol E10 RON 95-III</string>
+    <string name="prices_fuel_e5">Petrol E5 RON 92</string>
+    <string name="prices_fuel_diesel">Diesel DO 0.05S</string>
+    <string name="prices_usd">USD/VND (VCB)</string>
+    <string name="prices_offline">Can\'t reach the price sources</string>
+    <string name="prices_refresh">Refresh</string>
     <string name="aqi_good">Good</string>
     <string name="aqi_moderate">Moderate</string>
     <string name="aqi_sensitive">Unhealthy for some</string>
@@ -179,11 +293,6 @@
     <string name="widget_city_auto">Automatic (from IP)</string>
 
     <!-- Greeting name (Launcher settings) -->
-    <string name="settings_group_home">Home</string>
-    <string name="settings_group_you">You</string>
-    <string name="settings_group_motion">Motion</string>
-    <string name="settings_group_system">System</string>
-    <string name="settings_group_about">About</string>
     <string name="about_version">Version</string>
     <string name="about_default">Default launcher</string>
     <string name="about_default_yes">This launcher</string>
@@ -192,8 +301,6 @@
     <string name="about_stock_off">Turned off</string>
     <string name="about_stock_on">Turned on</string>
     <string name="about_stock_none">Not on this TV</string>
-    <string name="your_name">Your name</string>
-    <string name="your_name_none">Not set</string>
     <string name="save">Save</string>
 
     <!-- Wi-Fi menu (hold OK on the Wi-Fi pill) -->
@@ -231,7 +338,7 @@
     <string name="running_stop_all">Stop all</string>
     <string name="try_again">Try again</string>
     <string name="animations_desc">Off moves focus instantly, lightest on slow TVs</string>
-    <string name="widgets_desc">Weather, air quality, lunar date and system stats</string>
+    <string name="widgets_desc">Weather, air quality, lunar date, prices and system stats</string>
     <string name="reboot">Boot options</string>
     <string name="reboot_desc">Needs network debugging on</string>
     <string name="reboot_action">Restart</string>
@@ -249,7 +356,6 @@
     <string name="boot_options_message">Choose what the TV does next</string>
     <string name="restart_desc">Turns the TV off and on again</string>
     <string name="power_off_desc">Standby, the remote\'s power button wakes it</string>
-    <string name="settings_group_look">Appearance</string>
     <string name="look_color">Colour</string>
     <string name="look_color_theme">Theme default</string>
     <string-array name="look_seed_names">
@@ -266,7 +372,6 @@
     <string name="look_backdrop_sky">Sky that follows the time of day</string>
     <string name="look_backdrop_plain">Plain</string>
     <string name="look_backdrop_wallpaper">The theme\'s wallpaper</string>
-    <string name="settings_group_screensaver">Screensaver</string>
     <string name="screensaver_after">Start after</string>
     <string name="screensaver_never">Never</string>
     <plurals name="screensaver_minutes">
