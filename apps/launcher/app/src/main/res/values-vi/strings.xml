@@ -198,7 +198,38 @@
     <string name="header_date_top_desc">Đưa dòng thứ ngày lên ngang đỉnh số giờ thay vì ở giữa</string>
     <string name="widget_section_desc">Thẻ, bố cục, thao tác chạm và kích thước thẻ</string>
     <string name="headline_strip">Dải tin đầu trang</string>
-    <string name="headline_strip_desc">Cảnh báo mưa, tin nóng và trận tối nay ở đầu trang</string>
+    <string name="headline_strip_desc">Cảnh báo mưa, UV cao, không khí xấu, thời tiết hôm nay và ngày mai, tin nóng và trận tối nay ở đầu trang</string>
+    <string name="sources">Nguồn tin</string>
+    <string name="source_none">Chưa chọn nguồn nào</string>
+    <string name="source_tt_thoisu">Tuổi Trẻ Thời sự</string>
+    <string name="source_tt_thegioi">Tuổi Trẻ Thế giới</string>
+    <string name="source_tt_kinhdoanh">Tuổi Trẻ Kinh doanh</string>
+    <string name="source_vn_thoisu">VnExpress Thời sự</string>
+    <string name="source_vn_thegioi">VnExpress Thế giới</string>
+    <string name="source_vn_kinhdoanh">VnExpress Kinh doanh</string>
+    <string name="source_bbc">BBC Tiếng Việt</string>
+    <string name="source_rfa">RFA Tiếng Việt</string>
+    <string name="source_match_24h">24h V.League</string>
+    <string name="source_match_espn">ESPN 5 giải lớn</string>
+    <string name="ticker_today">Hôm nay: %1$s %2$d°, %3$d–%4$d°</string>
+    <string name="ticker_tomorrow">Ngày mai: %1$s, %2$d–%3$d°</string>
+    <string name="header_section">Header</string>
+    <string name="header_section_desc">Dải tin, nguồn tin, dòng chào, kiểu chữ đầu trang</string>
+    <string name="look_section">Giao diện</string>
+    <string name="look_section_desc">Màu sắc, nền, hiệu ứng, màn hình chờ</string>
+    <string name="system_section">Hệ thống</string>
+    <string name="system_section_desc">Cài đặt TV, ứng dụng khởi động, khởi động lại, khôi phục</string>
+    <string name="about_section">Giới thiệu</string>
+    <string name="about_section_desc">Phiên bản, mã nguồn</string>
+    <string name="greeting">Dòng chào</string>
+    <string name="greeting_desc">Lời chào theo buổi trong đầu trang</string>
+    <string name="greeting_text">Nội dung lời chào</string>
+    <string name="greeting_text_auto">Tự động theo giờ</string>
+    <string name="greeting_text_hint">Để trống để tự động theo giờ</string>
+    <string name="greeting_morning">Chào buổi sáng</string>
+    <string name="greeting_midday">Chào buổi trưa</string>
+    <string name="greeting_afternoon">Chào buổi chiều</string>
+    <string name="greeting_evening">Chào buổi tối</string>
     <string name="prices_gold">Vàng · triệu đ/lượng</string>
     <string name="prices_buy">Mua</string>
     <string name="prices_sell">Bán</string>
@@ -233,10 +264,6 @@
     <string name="widget_city_auto">Tự động (theo IP)</string>
 
     <!-- Greeting name (Launcher settings) -->
-    <string name="settings_group_home">Màn hình chính</string>
-    <string name="settings_group_motion">Chuyển động</string>
-    <string name="settings_group_system">Hệ thống</string>
-    <string name="settings_group_about">Thông tin</string>
     <string name="about_version">Phiên bản</string>
     <string name="about_default">Launcher mặc định</string>
     <string name="about_default_yes">Launcher này</string>
@@ -299,7 +326,6 @@
     <string name="boot_options_message">Chọn TV sẽ làm gì tiếp theo</string>
     <string name="restart_desc">Tắt rồi bật lại TV</string>
     <string name="power_off_desc">Chế độ chờ, bấm nút nguồn trên remote để bật lại</string>
-    <string name="settings_group_look">Giao diện</string>
     <string name="look_color">Màu chủ đạo</string>
     <string name="look_color_theme">Theo theme</string>
     <string-array name="look_seed_names">
@@ -316,7 +342,6 @@
     <string name="look_backdrop_sky">Bầu trời theo giờ trong ngày</string>
     <string name="look_backdrop_plain">Nền trơn</string>
     <string name="look_backdrop_wallpaper">Hình nền của theme</string>
-    <string name="settings_group_screensaver">Bảo vệ màn hình</string>
     <string name="screensaver_after">Bật sau</string>
     <string name="screensaver_never">Không bao giờ</string>
     <plurals name="screensaver_minutes">

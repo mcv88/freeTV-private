@@ -13,9 +13,9 @@ import org.xmlpull.v1.XmlPullParserFactory;
 
 final class NewsFeed {
 
-    private static final String FEED_URL = "https://vnexpress.net/rss/tin-moi-nhat.rss";
     private static final String TITLES_KEY = "news_titles", AT_KEY = "news_at";
     private static final int MAX_TITLES = 8;
+    private static final int MAX_MERGED = 20;
     private static final long FRESH_MS = 30 * 60 * 1000;
     private static final String USER_AGENT = "tvhome-launcher";
 
@@ -40,18 +40,34 @@ final class NewsFeed {
         return now - prefs(context).getLong(AT_KEY, 0) > FRESH_MS;
     }
 
-    static List<String> fetch(Context context) {
-        List<String> titles = download();
-        if (titles == null) return cached(context);
-        prefs(context).edit().putString(TITLES_KEY, String.join("\n", titles))
+    static List<String> fetch(Context context, List<String> urls) {
+        List<List<String>> perSource = new ArrayList<>();
+        for (String url : urls) {
+            List<String> titles = download(url);
+            if (titles != null && !titles.isEmpty()) perSource.add(titles);
+        }
+        if (perSource.isEmpty()) return cached(context);
+        List<String> merged = new ArrayList<>();
+        for (int index = 0; merged.size() < MAX_MERGED; index++) {
+            boolean added = false;
+            for (List<String> titles : perSource) {
+                if (index < titles.size() && !merged.contains(titles.get(index))) {
+                    merged.add(titles.get(index));
+                    added = true;
+                    if (merged.size() >= MAX_MERGED) break;
+                }
+            }
+            if (!added) break;
+        }
+        prefs(context).edit().putString(TITLES_KEY, String.join("\n", merged))
                 .putLong(AT_KEY, System.currentTimeMillis()).apply();
-        return titles;
+        return merged;
     }
 
-    private static List<String> download() {
+    private static List<String> download(String url) {
         HttpURLConnection http = null;
         try {
-            http = (HttpURLConnection) new URL(FEED_URL).openConnection();
+            http = (HttpURLConnection) new URL(url).openConnection();
             http.setConnectTimeout(30_000);
             http.setReadTimeout(30_000);
             http.setRequestProperty("User-Agent", USER_AGENT);

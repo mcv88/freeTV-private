@@ -144,6 +144,18 @@
                     <!-- At a Glance: the date stacked beside the clock, centred on its
                          digits (MainActivity.alignHeader). -->
 
+                    <TextView
+                        android:id="@+id/greeting"
+                        android:gravity="left"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:ellipsize="end"
+                        android:textColor="#8CFFFFFF"
+                        android:textSize="20sp"
+                        android:fontFamily="@font/sans_medium"
+                        android:letterSpacing="0.01" />
+
                     <!-- Shamsi date ("27 Mehr 1405"), shown when shamsi_date is on. -->
                     <TextView
                         android:id="@+id/shamsiDate"
@@ -188,9 +200,10 @@
             android:layout_alignStart="@id/leftBlock"
             android:layout_alignEnd="@id/leftBlock"
             android:layout_marginTop="2dp"
-            android:gravity="center"
+            android:gravity="left"
             android:singleLine="true"
-            android:ellipsize="end"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
             android:textColor="#FFFFFFFF"
             android:textSize="18sp"
             android:fontFamily="@font/sans_medium"

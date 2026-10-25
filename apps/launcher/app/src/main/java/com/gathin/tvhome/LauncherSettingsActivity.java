@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.widget.EditText;
 import android.view.inputmethod.EditorInfo;
 import android.view.WindowManager;
@@ -37,11 +38,13 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.IntConsumer;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Remote-friendly settings owned by the launcher, as a side sheet over Home: grouped lists under group
- * labels (Home, Appearance, Screensaver, You, Motion, System, About), each row with its icon. System settings
- * stay one row away.
+ * Remote-friendly settings owned by the launcher, as a side sheet over Home: collapsible sections
+ * (Header, Widgets, Appearance, System, About), each row with its icon. The update row stays
+ * outside any section, one tap away.
  */
 public final class LauncherSettingsActivity extends Activity {
     private SharedPreferences choices;
@@ -57,6 +60,16 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView widgetsChoice;
     private TextView headlineStripChoice;
     private M3Switch headlineStripSwitch;
+    private TextView sourcesChoice;
+    private TextView headerSectionChoice;
+    private TextView lookSectionChoice;
+    private TextView systemSectionChoice;
+    private TextView aboutSectionChoice;
+    private TextView rebootChoice;
+    private TextView resetChoice;
+    private TextView greetingChoice;
+    private M3Switch greetingSwitch;
+    private TextView greetingTextChoice;
     private TextView headerBoldChoice;
     private M3Switch headerBoldSwitch;
     private TextView headerDateTopChoice;
@@ -128,11 +141,11 @@ public final class LauncherSettingsActivity extends Activity {
         tvSettingsChoice.setText(getString(R.string.tv_settings));
         tvSettingsChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_settings), null,
                 icon(R.drawable.ic_open_in_new), null);
-        TextView rebootChoice = findViewById(R.id.rebootChoice);
+        rebootChoice = findViewById(R.id.rebootChoice);
         rebootChoice.setText(item(getString(R.string.reboot), getString(R.string.reboot_desc)));
         rebootChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(R.drawable.ic_power), null, null, null);
         rebootChoice.setOnClickListener(v -> confirmPower(config));
-        TextView resetChoice = findViewById(R.id.resetChoice);
+        resetChoice = findViewById(R.id.resetChoice);
         resetChoice.setText(item(getString(R.string.reset_settings),
                 getString(R.string.reset_settings_desc)));
         resetChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
@@ -165,6 +178,29 @@ public final class LauncherSettingsActivity extends Activity {
             choices.edit().putBoolean(MainActivity.HEADLINE_STRIP_KEY, on).apply();
             headlineStripSwitch.setChecked(on);
         });
+        sourcesChoice = findViewById(R.id.sourcesChoice);
+        sourcesChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_info), null, null, null);
+        sourcesChoice.setOnClickListener(v -> chooseSources(config));
+        refreshSourcesRow();
+        greetingChoice = findViewById(R.id.greetingChoice);
+        greetingChoice.setText(item(getString(R.string.greeting),
+                getString(R.string.greeting_desc)));
+        greetingSwitch = new M3Switch(density, palette, config.animations);
+        greetingSwitch.setChecked(choices.getBoolean(MainActivity.GREETING_KEY, false));
+        greetingChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_person), null, greetingSwitch, null);
+        greetingChoice.setOnClickListener(v -> {
+            boolean on = !choices.getBoolean(MainActivity.GREETING_KEY, false);
+            choices.edit().putBoolean(MainActivity.GREETING_KEY, on).apply();
+            greetingSwitch.setChecked(on);
+            refreshGreetingRows();
+        });
+        greetingTextChoice = findViewById(R.id.greetingTextChoice);
+        greetingTextChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_code), null, null, null);
+        greetingTextChoice.setOnClickListener(v -> chooseGreetingText());
+        refreshGreetingRows();
         headerBoldChoice = findViewById(R.id.headerBoldChoice);
         headerBoldChoice.setText(item(getString(R.string.header_bold),
                 getString(R.string.header_bold_desc)));
@@ -191,6 +227,7 @@ public final class LauncherSettingsActivity extends Activity {
             choices.edit().putBoolean(MainActivity.HEADER_DATE_TOP_KEY, on).apply();
             headerDateTopSwitch.setChecked(on);
         });
+        showHeaderSection();
         showWidgetToggles(density);
         showWidgetLayout(config);
         showWidgetHeights(config);
@@ -200,10 +237,13 @@ public final class LauncherSettingsActivity extends Activity {
         showMenuInputs(config, density);
         showLook(config);
         showScreensaver(config);
+        showLookSection();
         showHomeStatus();
         showBootApp(config);
+        showSystemSection();
         showUpdate();
         showAbout();
+        showAboutSection();
         refresh();
         View sheet = findViewById(R.id.sheet);
         GradientDrawable sheetBg = new GradientDrawable();
@@ -265,6 +305,109 @@ public final class LauncherSettingsActivity extends Activity {
         }
     }
 
+    private static final String HEADER_SECTION_KEY = "header_section";
+    private static final String LOOK_SECTION_KEY = "look_section";
+    private static final String SYSTEM_SECTION_KEY = "system_section";
+    private static final String ABOUT_SECTION_KEY = "about_section";
+
+    private void showHeaderSection() {
+        headerSectionChoice = findViewById(R.id.headerSectionChoice);
+        headerSectionChoice.setText(item(getString(R.string.header_section),
+                getString(R.string.header_section_desc)));
+        headerSectionChoice.setOnClickListener(v -> {
+            boolean expanded = !choices.getBoolean(HEADER_SECTION_KEY, false);
+            choices.edit().putBoolean(HEADER_SECTION_KEY, expanded).apply();
+            refreshHeaderSection();
+        });
+        refreshHeaderSection();
+    }
+
+    private void refreshHeaderSection() {
+        boolean expanded = choices.getBoolean(HEADER_SECTION_KEY, false);
+        headerSectionChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_info), null,
+                icon(expanded ? R.drawable.ic_remove : R.drawable.ic_add), null);
+        int visibility = expanded ? View.VISIBLE : View.GONE;
+        headlineStripChoice.setVisibility(visibility);
+        sourcesChoice.setVisibility(visibility);
+        greetingChoice.setVisibility(visibility);
+        greetingTextChoice.setVisibility(visibility);
+        headerBoldChoice.setVisibility(visibility);
+        headerDateTopChoice.setVisibility(visibility);
+    }
+
+    private void showLookSection() {
+        lookSectionChoice = findViewById(R.id.lookSectionChoice);
+        lookSectionChoice.setText(item(getString(R.string.look_section),
+                getString(R.string.look_section_desc)));
+        lookSectionChoice.setOnClickListener(v -> {
+            boolean expanded = !choices.getBoolean(LOOK_SECTION_KEY, false);
+            choices.edit().putBoolean(LOOK_SECTION_KEY, expanded).apply();
+            refreshLookSection();
+        });
+        refreshLookSection();
+    }
+
+    private void refreshLookSection() {
+        boolean expanded = choices.getBoolean(LOOK_SECTION_KEY, false);
+        lookSectionChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_contrast), null,
+                icon(expanded ? R.drawable.ic_remove : R.drawable.ic_add), null);
+        int visibility = expanded ? View.VISIBLE : View.GONE;
+        colorChoice.setVisibility(visibility);
+        backdropChoice.setVisibility(visibility);
+        screensaverTimeChoice.setVisibility(visibility);
+        screensaverStyleChoice.setVisibility(visibility);
+        animationsChoice.setVisibility(visibility);
+        advancedChoice.setVisibility(visibility);
+    }
+
+    private void showSystemSection() {
+        systemSectionChoice = findViewById(R.id.systemSectionChoice);
+        systemSectionChoice.setText(item(getString(R.string.system_section),
+                getString(R.string.system_section_desc)));
+        systemSectionChoice.setOnClickListener(v -> {
+            boolean expanded = !choices.getBoolean(SYSTEM_SECTION_KEY, false);
+            choices.edit().putBoolean(SYSTEM_SECTION_KEY, expanded).apply();
+            refreshSystemSection();
+        });
+        refreshSystemSection();
+    }
+
+    private void refreshSystemSection() {
+        boolean expanded = choices.getBoolean(SYSTEM_SECTION_KEY, false);
+        systemSectionChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_settings), null,
+                icon(expanded ? R.drawable.ic_remove : R.drawable.ic_add), null);
+        int visibility = expanded ? View.VISIBLE : View.GONE;
+        tvSettingsChoice.setVisibility(visibility);
+        bootAppChoice.setVisibility(visibility);
+        rebootChoice.setVisibility(visibility);
+        resetChoice.setVisibility(visibility);
+    }
+
+    private void showAboutSection() {
+        aboutSectionChoice = findViewById(R.id.aboutSectionChoice);
+        aboutSectionChoice.setText(item(getString(R.string.about_section),
+                getString(R.string.about_section_desc)));
+        aboutSectionChoice.setOnClickListener(v -> {
+            boolean expanded = !choices.getBoolean(ABOUT_SECTION_KEY, false);
+            choices.edit().putBoolean(ABOUT_SECTION_KEY, expanded).apply();
+            refreshAboutSection();
+        });
+        refreshAboutSection();
+    }
+
+    private void refreshAboutSection() {
+        boolean expanded = choices.getBoolean(ABOUT_SECTION_KEY, false);
+        aboutSectionChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_info), null,
+                icon(expanded ? R.drawable.ic_remove : R.drawable.ic_add), null);
+        int visibility = expanded ? View.VISIBLE : View.GONE;
+        findViewById(R.id.aboutVersion).setVisibility(visibility);
+        findViewById(R.id.aboutSource).setVisibility(visibility);
+    }
+
     /**
      * One switch per widget under the master one: the same list Home's shelf keeps (ORDER_KEY),
      * so hiding a widget here is its Remove on the shelf, and showing one its Add.
@@ -316,6 +459,33 @@ public final class LauncherSettingsActivity extends Activity {
         if (popupBlurChoice != null) refreshPopupBlurRow();
         if (widgetHeightRows[0] != null) refreshWidgetHeightRows();
         if (widgetWidthRows[0] != null) refreshWidgetWidthRows();
+    }
+
+    private void refreshGreetingRows() {
+        boolean on = choices.getBoolean(MainActivity.GREETING_KEY, false);
+        String custom = choices.getString(MainActivity.GREETING_TEXT_KEY, "");
+        String shown = custom != null && !custom.isEmpty() ? custom
+                : getString(R.string.greeting_text_auto);
+        greetingTextChoice.setText(item(getString(R.string.greeting_text), shown));
+        greetingTextChoice.setEnabled(on);
+        greetingTextChoice.setAlpha(on ? 1f : 0.38f);
+    }
+
+    private void chooseGreetingText() {
+        EditText edit = new EditText(this);
+        edit.setHint(R.string.greeting_text_hint);
+        String current = choices.getString(MainActivity.GREETING_TEXT_KEY, "");
+        if (current != null) edit.setText(current);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.greeting_text)
+                .setView(edit)
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    choices.edit().putString(MainActivity.GREETING_TEXT_KEY,
+                            edit.getText().toString().trim()).apply();
+                    refreshGreetingRows();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private static final int[] HEIGHT_OPTIONS = {176, 192, 200, 208, 224};
@@ -765,6 +935,70 @@ public final class LauncherSettingsActivity extends Activity {
         }
     }
 
+
+    private static int checkedIcon(boolean on) {
+        return on ? R.drawable.ic_check_on : R.drawable.ic_check_off;
+    }
+
+    private void refreshSourcesRow() {
+        List<String> names = new ArrayList<>();
+        for (int index = 0; index < MainActivity.NEWS_SOURCE_KEYS.length; index++) {
+            if (choices.getBoolean(MainActivity.NEWS_SOURCE_KEYS[index],
+                    MainActivity.NEWS_SOURCE_DEFAULTS[index])) {
+                names.add(getString(MainActivity.NEWS_SOURCE_NAMES[index]));
+            }
+        }
+        if (choices.getBoolean(MainActivity.MATCH_24H_KEY, true)) {
+            names.add(getString(R.string.source_match_24h));
+        }
+        if (choices.getBoolean(MainActivity.MATCH_ESPN_KEY, true)) {
+            names.add(getString(R.string.source_match_espn));
+        }
+        String desc = names.isEmpty() ? getString(R.string.source_none) : String.join(", ", names);
+        sourcesChoice.setText(item(getString(R.string.sources), desc));
+    }
+
+    /** A checklist in a dialog: each row toggles its source at once, closing refreshes the row. */
+    private void chooseSources(Config config) {
+        Palette p = Palette.currentOrBaseline();
+        float d = getResources().getDisplayMetrics().density;
+        LinearLayout panel = dialogPanel(R.string.sources, p, d);
+        LinearLayout options = dialogOptionList(panel, d);
+        int newsCount = MainActivity.NEWS_SOURCE_KEYS.length;
+        int total = newsCount + 2;
+        TextView[] rows = new TextView[total];
+        String[] keys = new String[total];
+        boolean[] defaults = new boolean[total];
+        for (int index = 0; index < newsCount; index++) {
+            keys[index] = MainActivity.NEWS_SOURCE_KEYS[index];
+            defaults[index] = MainActivity.NEWS_SOURCE_DEFAULTS[index];
+            rows[index] = optionRow(getString(MainActivity.NEWS_SOURCE_NAMES[index]),
+                    checkedIcon(choices.getBoolean(keys[index], defaults[index])));
+            options.addView(rows[index]);
+        }
+        keys[newsCount] = MainActivity.MATCH_24H_KEY;
+        defaults[newsCount] = true;
+        rows[newsCount] = optionRow(getString(R.string.source_match_24h),
+                checkedIcon(choices.getBoolean(keys[newsCount], true)));
+        options.addView(rows[newsCount]);
+        keys[newsCount + 1] = MainActivity.MATCH_ESPN_KEY;
+        defaults[newsCount + 1] = true;
+        rows[newsCount + 1] = optionRow(getString(R.string.source_match_espn),
+                checkedIcon(choices.getBoolean(keys[newsCount + 1], true)));
+        options.addView(rows[newsCount + 1]);
+        Dialog dialog = showDialog(panel, p, config, d);
+        for (int index = 0; index < total; index++) {
+            int value = index;
+            rows[index].setOnClickListener(v -> {
+                boolean on = !choices.getBoolean(keys[value], defaults[value]);
+                choices.edit().putBoolean(keys[value], on).apply();
+                rows[value].setCompoundDrawablesRelativeWithIntrinsicBounds(
+                        icon(checkedIcon(on)), null, null, null);
+            });
+        }
+        dialog.setOnDismissListener(ignored -> refreshSourcesRow());
+        rows[0].requestFocus();
+    }
 
     private void chooseColumns(Config config) {
         CharSequence[] labels = new CharSequence[COLUMN_OPTIONS.length];

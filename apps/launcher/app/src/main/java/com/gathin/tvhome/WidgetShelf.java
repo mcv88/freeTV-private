@@ -191,7 +191,8 @@ final class WidgetShelf {
     /** The weather_city in config.xml: the place until the owner picks one on the widget. */
     private final String configCity;
     private final SharedPreferences prefs;
-    private static final String CITY_KEY = "weather_city", UNIT_KEY = "weather_unit",
+    static final String CITY_KEY = "weather_city";
+    private static final String UNIT_KEY = "weather_unit",
             TET_ONLY_KEY = "calendar_tet_only", CPU_KEY = "system_cpu";
     /** The page each card opens on when Home shows, from its settings. */
     private static final String AIR_PAGE_KEY = "air_page", SYSTEM_PAGE_KEY = "system_page";

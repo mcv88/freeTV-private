@@ -49,8 +49,10 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.provider.Settings;
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
+import android.text.style.ForegroundColorSpan;
 import android.text.TextUtils;
 import android.view.Choreographer;
 import android.view.Gravity;
@@ -102,8 +104,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** How the detail popup covers Home (Launcher settings): blur it all, dim only, or nothing. */
     static final String POPUP_BLUR_KEY = "popup_blur";
     static final String HEADLINE_STRIP_KEY = "headline_strip";
+    static final String GREETING_KEY = "greeting";
+    static final String GREETING_TEXT_KEY = "greeting_text";
     static final String HEADER_BOLD_KEY = "header_bold";
     static final String HEADER_DATE_TOP_KEY = "header_date_top";
+    /** News sources, one entry per outlet section, in picker order. */
+    static final String[] NEWS_SOURCE_KEYS = {
+            "src_news_tt_thoisu", "src_news_tt_thegioi", "src_news_tt_kinhdoanh",
+            "src_news_vn_thoisu", "src_news_vn_thegioi", "src_news_vn_kinhdoanh",
+            "src_news_bbc", "src_news_rfa"};
+    static final String[] NEWS_SOURCE_URLS = {
+            "https://tuoitre.vn/rss/thoi-su.rss", "https://tuoitre.vn/rss/the-gioi.rss",
+            "https://tuoitre.vn/rss/kinh-doanh.rss", "https://vnexpress.net/rss/thoi-su.rss",
+            "https://vnexpress.net/rss/the-gioi.rss", "https://vnexpress.net/rss/kinh-doanh.rss",
+            "https://feeds.bbci.co.uk/vietnamese/rss.xml",
+            "https://www.rfa.org/arc/outboundfeeds/vietnamese/rss/"};
+    static final int[] NEWS_SOURCE_NAMES = {
+            R.string.source_tt_thoisu, R.string.source_tt_thegioi, R.string.source_tt_kinhdoanh,
+            R.string.source_vn_thoisu, R.string.source_vn_thegioi, R.string.source_vn_kinhdoanh,
+            R.string.source_bbc, R.string.source_rfa};
+    static final boolean[] NEWS_SOURCE_DEFAULTS = {
+            true, true, false, false, false, false, false, false};
+    static final String MATCH_24H_KEY = "src_match_24h";
+    static final String MATCH_ESPN_KEY = "src_match_espn";
     static final String POPUP_BLUR_ALL = "all";
     static final String POPUP_BLUR_DIM = "dim";
     static final String POPUP_BLUR_OFF = "off";
@@ -123,6 +146,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean rtlAppGrid;
     private static final long MINUTE_MS = 60_000L;
     private static final long STATS_MS = 10_000L;
+    private static final long WARNING_RETRY_MS = 5 * 60_000L;
     private String liveTvPkg;
     private String liveTvAction;
     private String inputAction;
@@ -148,11 +172,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean animations;
     private boolean advancedEffects;
     private TextView headlineStrip;
+    private TextView greeting;
+    private boolean warningFetching;
+    private long warningFailure;
     private List<String> headlines = new ArrayList<>();
     private List<String> matches = new ArrayList<>();
     private List<String> espn = new ArrayList<>();
+    private List<String> lastNewsUrls = new ArrayList<>();
     private List<String> headlineItems = new ArrayList<>();
-    private int headlineIndex;
     private View btnInputs;
     private TextView btnSleepTimer;
     private PopupWindow inputsPopup;
@@ -328,13 +355,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final Runnable headlineTick = new Runnable() {
         @Override
         public void run() {
-            if (rainLine() == null && headlineItems.size() > 1) {
-                headlineIndex = (headlineIndex + 1) % headlineItems.size();
-            }
             refreshHeadlines();
             refreshMatches();
             refreshEspn();
+            refreshStripWarnings();
             refreshHeadline();
+            refreshGreeting();
             handler.postDelayed(this, 10_000);
         }
     };
@@ -384,6 +410,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // dock_title false: the name above the dock never shows; the glow still follows the dock.
         if (!cfg.dockTitle) heroName.setVisibility(View.GONE);
         headlineStrip = findViewById(R.id.headlineStrip);
+        greeting = findViewById(R.id.greeting);
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
         stats = findViewById(R.id.stats);
@@ -732,6 +759,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         rebuildOnResume = false;
         applyHeaderBold();
+        refreshGreeting();
         refreshHeadlines();
         refreshMatches();
         refreshEspn();
@@ -1397,6 +1425,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * exactly as tall as the digits' cap height and standing on that baseline, and the button group
      * centred on the digits. Done with translations, so it never re-enters layout.
      */
+    private void refreshGreeting() {
+        if (greeting == null) return;
+        if (!settingsPreferences.getBoolean(GREETING_KEY, false)) {
+            greeting.setVisibility(View.GONE);
+            return;
+        }
+        String custom = settingsPreferences.getString(GREETING_TEXT_KEY, "");
+        greeting.setText(custom != null && !custom.isEmpty() ? custom : timeGreeting());
+        greeting.setVisibility(View.VISIBLE);
+    }
+
+    private String timeGreeting() {
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        if (hour >= 5 && hour < 11) return getString(R.string.greeting_morning);
+        if (hour >= 11 && hour < 13) return getString(R.string.greeting_midday);
+        if (hour >= 13 && hour < 18) return getString(R.string.greeting_afternoon);
+        return getString(R.string.greeting_evening);
+    }
+
     private void applyHeaderBold() {
         boolean bold = settingsPreferences.getBoolean(HEADER_BOLD_KEY, false);
         TextView clock = findViewById(R.id.clock);
@@ -1439,6 +1486,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             float centre = yInRoot(buttonsGroup) + buttonsGroup.getHeight() / 2f;
             buttonsGroup.setTranslationY(clockBaseline - cap / 2f - centre);
         }
+        if (headlineStrip != null && headlineStrip.getHeight() > 0) {
+            int indent = Math.round(xInRoot(dateBlock) - xInRoot(headlineStrip));
+            if (headlineStrip.getPaddingStart() != indent) {
+                headlineStrip.setPadding(indent, headlineStrip.getPaddingTop(),
+                        headlineStrip.getPaddingEnd(), headlineStrip.getPaddingBottom());
+            }
+        }
+    }
+
+    private float xInRoot(View v) {
+        Rect r = new Rect(0, 0, 0, 0);
+        root.offsetDescendantRectToMyCoords(v, r);
+        return r.left;
     }
 
     /** A view's top in root coordinates from layout alone (translations ignored). */
@@ -2130,13 +2190,36 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     // ---- top bar ---------------------------------------------------------------------------------
 
+    private List<String> enabledNewsUrls() {
+        List<String> urls = new ArrayList<>();
+        for (int index = 0; index < NEWS_SOURCE_KEYS.length; index++) {
+            boolean on = settingsPreferences.getBoolean(NEWS_SOURCE_KEYS[index],
+                    NEWS_SOURCE_DEFAULTS[index]);
+            if (on) urls.add(NEWS_SOURCE_URLS[index]);
+        }
+        return urls;
+    }
+
     private void refreshHeadlines() {
         if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
-        if (!headlines.isEmpty() && !NewsFeed.stale(this, System.currentTimeMillis())) return;
+        List<String> urls = enabledNewsUrls();
+        if (urls.isEmpty()) {
+            if (!headlines.isEmpty()) {
+                headlines = new ArrayList<>();
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            }
+            lastNewsUrls = urls;
+            return;
+        }
+        boolean urlsChanged = !urls.equals(lastNewsUrls);
+        if (!headlines.isEmpty() && !NewsFeed.stale(this, System.currentTimeMillis())
+                && !urlsChanged) return;
         new Thread(() -> {
-            List<String> fresh = NewsFeed.fetch(this);
+            List<String> fresh = NewsFeed.fetch(this, urls);
             handler.post(() -> {
                 headlines = fresh;
+                lastNewsUrls = urls;
                 rebuildHeadlineRotation();
                 refreshHeadline();
             });
@@ -2145,6 +2228,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void refreshMatches() {
         if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        if (!settingsPreferences.getBoolean(MATCH_24H_KEY, true)) {
+            if (!matches.isEmpty()) {
+                matches = new ArrayList<>();
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            }
+            return;
+        }
         if (!matches.isEmpty() && !MatchesFeed.stale(this, System.currentTimeMillis())) return;
         new Thread(() -> {
             List<String> fresh = MatchesFeed.fetch(this);
@@ -2158,6 +2249,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void refreshEspn() {
         if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        if (!settingsPreferences.getBoolean(MATCH_ESPN_KEY, true)) {
+            if (!espn.isEmpty()) {
+                espn = new ArrayList<>();
+                rebuildHeadlineRotation();
+                refreshHeadline();
+            }
+            return;
+        }
         if (!espn.isEmpty() && !EspnFeed.stale(this, System.currentTimeMillis())) return;
         new Thread(() -> {
             List<String> fresh = EspnFeed.fetch(this);
@@ -2175,7 +2274,44 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (String line : matches) if (!items.contains(line)) items.add(line);
         for (String line : espn) if (!items.contains(line)) items.add(line);
         headlineItems = items;
-        if (headlineIndex >= items.size()) headlineIndex = 0;
+    }
+
+    private void refreshStripWarnings() {
+        if (!settingsPreferences.getBoolean(HEADLINE_STRIP_KEY, true)) return;
+        long now = System.currentTimeMillis();
+        Weather.Report weather = Weather.cached(this);
+        AirQuality.Report air = AirQuality.cached(this);
+        boolean weatherStale = weather == null || weather.stale(now);
+        boolean airStale = air == null || air.stale(now);
+        if (!weatherStale && !airStale) return;
+        if (warningFetching || now - warningFailure < WARNING_RETRY_MS) return;
+        warningFetching = true;
+        Context app = getApplicationContext();
+        String city = settingsPreferences.getString(WidgetShelf.CITY_KEY,
+                getString(R.string.weather_city).trim());
+        new Thread(() -> {
+            boolean ok = false;
+            try {
+                if (weatherStale) {
+                    Weather.fetch(app, city);
+                    ok = true;
+                }
+            } catch (Exception ignored) {
+            }
+            try {
+                if (airStale) {
+                    AirQuality.fetch(app, city);
+                    ok = true;
+                }
+            } catch (Exception ignored) {
+            }
+            boolean fetched = ok;
+            handler.post(() -> {
+                warningFetching = false;
+                if (!fetched) warningFailure = System.currentTimeMillis();
+                refreshHeadline();
+            });
+        }, "strip-warnings").start();
     }
 
     private void refreshHeadline() {
@@ -2183,18 +2319,73 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             headlineStrip.setVisibility(View.GONE);
             return;
         }
+        List<String> ticker = new ArrayList<>();
         String rain = rainLine();
-        if (rain != null) {
-            headlineStrip.setText(rain);
-            headlineStrip.setVisibility(View.VISIBLE);
-            return;
-        }
-        if (headlineItems.isEmpty()) {
+        if (rain != null) ticker.add(rain);
+        String uv = uvLine();
+        if (uv != null) ticker.add(uv);
+        String air = airLine();
+        if (air != null) ticker.add(air);
+        String today = todayLine();
+        if (today != null) ticker.add(today);
+        String tomorrow = tomorrowLine();
+        if (tomorrow != null) ticker.add(tomorrow);
+        for (String line : headlineItems) if (!ticker.contains(line)) ticker.add(line);
+        if (ticker.isEmpty()) {
             headlineStrip.setVisibility(View.GONE);
             return;
         }
-        headlineStrip.setText(headlineItems.get(headlineIndex % headlineItems.size()));
+        SpannableStringBuilder joined = new SpannableStringBuilder();
+        for (int i = 0; i < ticker.size(); i++) {
+            if (i > 0) {
+                int start = joined.length();
+                joined.append("   •   ");
+                joined.setSpan(new ForegroundColorSpan(0xA6FFFFFF), start, joined.length(),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            joined.append(ticker.get(i));
+        }
+        if (!joined.toString().equals(headlineStrip.getText().toString())) {
+            headlineStrip.setText(joined);
+        }
+        headlineStrip.setSelected(true);
         headlineStrip.setVisibility(View.VISIBLE);
+    }
+
+    private String uvLine() {
+        Weather.Report report = Weather.cached(this);
+        if (report == null) return null;
+        long ageMinutes = (System.currentTimeMillis() - report.fetchedAt) / 60_000;
+        if (ageMinutes > 120 || report.uv < 6) return null;
+        return getString(R.string.chip_uv) + " " + Math.round(report.uv) + " · "
+                + getString(Weather.uvLabel(report.uv));
+    }
+
+    private String airLine() {
+        AirQuality.Report air = AirQuality.cached(this);
+        if (air == null || air.stale(System.currentTimeMillis())) return null;
+        AirQuality.Level level = AirQuality.level(air.aqi);
+        if (level == AirQuality.Level.GOOD || level == AirQuality.Level.MODERATE) return null;
+        return getString(AirQuality.label(level)) + ", PM2.5 " + air.pm25 + " µg/m³";
+    }
+
+    private String todayLine() {
+        Weather.Report report = Weather.cached(this);
+        if (report == null) return null;
+        long ageMinutes = (System.currentTimeMillis() - report.fetchedAt) / 60_000;
+        if (ageMinutes > 120) return null;
+        return getString(R.string.ticker_today, getString(Weather.label(Weather.sky(report.code))),
+                Math.round(report.temp), Math.round(report.low), Math.round(report.high));
+    }
+
+    private String tomorrowLine() {
+        Weather.Report report = Weather.cached(this);
+        if (report == null) return null;
+        long ageMinutes = (System.currentTimeMillis() - report.fetchedAt) / 60_000;
+        if (ageMinutes > 120) return null;
+        return getString(R.string.ticker_tomorrow,
+                getString(Weather.label(Weather.sky(report.tomorrowCode))),
+                Math.round(report.tomorrowLow), Math.round(report.tomorrowHigh));
     }
 
     private String rainLine() {
