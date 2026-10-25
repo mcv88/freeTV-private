@@ -62,6 +62,7 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView headlineStripChoice;
     private M3Switch headlineStripSwitch;
     private TextView tickerLengthChoice;
+    private TextView tickerScrollChoice;
     private TextView sourcesChoice;
     private TextView headerSectionChoice;
     private TextView lookSectionChoice;
@@ -184,6 +185,11 @@ public final class LauncherSettingsActivity extends Activity {
                 icon(R.drawable.ic_info), null, null, null);
         tickerLengthChoice.setOnClickListener(v -> chooseTickerLength(config));
         refreshTickerLengthRow();
+        tickerScrollChoice = findViewById(R.id.tickerScrollChoice);
+        tickerScrollChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_move), null, null, null);
+        tickerScrollChoice.setOnClickListener(v -> chooseTickerScroll(config));
+        refreshTickerScrollRow();
         sourcesChoice = findViewById(R.id.sourcesChoice);
         sourcesChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
                 icon(R.drawable.ic_info), null, null, null);
@@ -374,6 +380,36 @@ public final class LauncherSettingsActivity extends Activity {
         tickerLengthChoice.setText(item(getString(R.string.ticker_length), desc));
     }
 
+    private static final String[] TICKER_SCROLL_VALUES = {MainActivity.TICKER_SCROLL_MARQUEE,
+            MainActivity.TICKER_SCROLL_MANUAL};
+    private static final int[] TICKER_SCROLL_LABELS = {R.string.ticker_scroll_marquee,
+            R.string.ticker_scroll_manual};
+
+    private void chooseTickerScroll(Config config) {
+        CharSequence[] labels = new CharSequence[TICKER_SCROLL_LABELS.length];
+        for (int i = 0; i < labels.length; i++) labels[i] = getString(TICKER_SCROLL_LABELS[i]);
+        chooseOne(R.string.ticker_scroll, labels, null, tickerScrollIndex(), index -> {
+            choices.edit().putString(MainActivity.TICKER_SCROLL_KEY,
+                    TICKER_SCROLL_VALUES[index]).apply();
+            refreshTickerScrollRow();
+        }, config);
+    }
+
+    private int tickerScrollIndex() {
+        String mode = choices.getString(MainActivity.TICKER_SCROLL_KEY,
+                MainActivity.TICKER_SCROLL_MARQUEE);
+        for (int i = 0; i < TICKER_SCROLL_VALUES.length; i++) {
+            if (TICKER_SCROLL_VALUES[i].equals(mode)) return i;
+        }
+        return 0;
+    }
+
+    private void refreshTickerScrollRow() {
+        int index = tickerScrollIndex();
+        tickerScrollChoice.setText(item(getString(R.string.ticker_scroll),
+                getString(TICKER_SCROLL_LABELS[index])));
+    }
+
     private void showHeaderSection() {
         headerSectionChoice = findViewById(R.id.headerSectionChoice);
         headerSectionChoice.setText(item(getString(R.string.header_section),
@@ -394,6 +430,7 @@ public final class LauncherSettingsActivity extends Activity {
         int visibility = expanded ? View.VISIBLE : View.GONE;
         headlineStripChoice.setVisibility(visibility);
         tickerLengthChoice.setVisibility(visibility);
+        tickerScrollChoice.setVisibility(visibility);
         sourcesChoice.setVisibility(visibility);
         greetingChoice.setVisibility(visibility);
         headerBoldChoice.setVisibility(visibility);

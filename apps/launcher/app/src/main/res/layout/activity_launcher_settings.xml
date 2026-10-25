@@ -73,6 +73,7 @@
                     <TextView android:id="@+id/headerSectionChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/headlineStripChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/tickerLengthChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/tickerScrollChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/sourcesChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/greetingChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/greetingTextChoice" style="@style/SettingsListItem" />

@@ -113,6 +113,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     static final String TICKER_LEN_FULL = "full";
     static final String TICKER_LEN_CUSTOM = "custom";
     static final String TICKER_WIDTH_PX_KEY = "ticker_width_px";
+    static final String TICKER_SCROLL_KEY = "ticker_scroll";
+    static final String TICKER_SCROLL_MARQUEE = "marquee";
+    static final String TICKER_SCROLL_MANUAL = "manual";
     static final String GREETING_TEXT_KEY = "greeting_text";
     static final String HEADER_BOLD_KEY = "header_bold";
     /** News sources, one entry per outlet section, in picker order. */
@@ -2386,14 +2389,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (!joined.toString().equals(headlineStrip.getText().toString())) {
             headlineStrip.setText(joined);
-            headlineStrip.scrollTo(0, 0);
         }
         headlineStrip.setVisibility(View.VISIBLE);
-        startTickerScroll();
+        applyTickerScrollMode();
     }
 
-    private static final int TICKER_STEP_MS = 50;
-    private static final int TICKER_STEP_PX = 6;
+    private void applyTickerScrollMode() {
+        String mode = settingsPreferences.getString(TICKER_SCROLL_KEY, TICKER_SCROLL_MARQUEE);
+        if (TICKER_SCROLL_MANUAL.equals(mode)) {
+            if (headlineStrip.getEllipsize() != null) headlineStrip.setEllipsize(null);
+            headlineStrip.setSelected(false);
+            startTickerScroll();
+            return;
+        }
+
+        stopTickerScroll();
+        if (headlineStrip.getEllipsize() != TextUtils.TruncateAt.MARQUEE) {
+            headlineStrip.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        }
+        if (headlineStrip.getMarqueeRepeatLimit() != -1) {
+            headlineStrip.setMarqueeRepeatLimit(-1);
+        }
+        headlineStrip.setSelected(true);
+    }
+
+    private static final int TICKER_STEP_MS = 16;
+    private static final int TICKER_STEP_PX = 2;
     private static final int TICKER_WRAP_PAUSE_MS = 1200;
     private boolean tickerScrolling;
     private final Runnable tickerScroll = new Runnable() {

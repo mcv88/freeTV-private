@@ -218,6 +218,9 @@
     <string name="system_section">Hệ thống</string>
     <string name="system_section_desc">Cài đặt TV, ứng dụng khởi động, khởi động lại, khôi phục</string>
     <string name="ticker_length">Độ dài dải tin</string>
+    <string name="ticker_scroll">Kiểu chạy dải tin</string>
+    <string name="ticker_scroll_marquee">Marquee hệ thống</string>
+    <string name="ticker_scroll_manual">Tự cuộn</string>
     <string name="ticker_len_short">Ngắn</string>
     <string name="ticker_len_wifi">Tới icon wifi</string>
     <string name="ticker_len_full">Toàn màn hình</string>
