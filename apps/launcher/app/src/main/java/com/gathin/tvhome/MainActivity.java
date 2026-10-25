@@ -65,6 +65,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.TextClock;
 import android.widget.Toast;
@@ -105,6 +106,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     static final String POPUP_BLUR_KEY = "popup_blur";
     static final String HEADLINE_STRIP_KEY = "headline_strip";
     static final String GREETING_KEY = "greeting";
+    static final String TICKER_LENGTH_KEY = "ticker_length";
+    static final String TICKER_LEN_SHORT = "short";
+    static final String TICKER_LEN_WIFI = "wifi";
+    static final String TICKER_LEN_FULL = "full";
+    static final String TICKER_LEN_CUSTOM = "custom";
+    static final String TICKER_WIDTH_PX_KEY = "ticker_width_px";
     static final String GREETING_TEXT_KEY = "greeting_text";
     static final String HEADER_BOLD_KEY = "header_bold";
     static final String HEADER_DATE_TOP_KEY = "header_date_top";
@@ -764,6 +771,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         refreshMatches();
         refreshEspn();
         refreshHeadline();
+        applyStripWidth();
         handler.postDelayed(headlineTick, 10_000);
         updateWifiLabel();
         updateInputsButton();
@@ -1493,6 +1501,41 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         headlineStrip.getPaddingEnd(), headlineStrip.getPaddingBottom());
             }
         }
+        applyStripWidth();
+    }
+
+    private void applyStripWidth() {
+        if (headlineStrip == null || headlineStrip.getHeight() == 0) return;
+        RelativeLayout.LayoutParams params =
+                (RelativeLayout.LayoutParams) headlineStrip.getLayoutParams();
+        String length = settingsPreferences.getString(TICKER_LENGTH_KEY, TICKER_LEN_WIFI);
+        if (TICKER_LEN_SHORT.equals(length)) {
+            if (params.getRule(RelativeLayout.ALIGN_END) == R.id.leftBlock) return;
+            params.addRule(RelativeLayout.ALIGN_END, R.id.leftBlock);
+            headlineStrip.setLayoutParams(params);
+            return;
+        }
+        int width;
+        if (TICKER_LEN_CUSTOM.equals(length)) {
+            width = Math.max(0, settingsPreferences.getInt(TICKER_WIDTH_PX_KEY, 0));
+        } else {
+            int stripLeft = Math.round(xInRoot(headlineStrip));
+            int gap = Math.round(12 * density);
+            int right;
+            if (TICKER_LEN_FULL.equals(length)) {
+                View parent = (View) headlineStrip.getParent();
+                if (parent == null || parent.getWidth() == 0) return;
+                right = Math.round(xInRoot(parent)) + parent.getWidth();
+            } else {
+                if (btnWifi == null || btnWifi.getWidth() == 0) return;
+                right = Math.round(xInRoot(btnWifi));
+            }
+            width = Math.max(0, right - gap - stripLeft);
+        }
+        if (params.getRule(RelativeLayout.ALIGN_END) == 0 && params.width == width) return;
+        params.removeRule(RelativeLayout.ALIGN_END);
+        params.width = width;
+        headlineStrip.setLayoutParams(params);
     }
 
     private float xInRoot(View v) {

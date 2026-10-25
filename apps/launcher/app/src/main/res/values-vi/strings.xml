@@ -219,6 +219,12 @@
     <string name="look_section_desc">Màu sắc, nền, hiệu ứng, màn hình chờ</string>
     <string name="system_section">Hệ thống</string>
     <string name="system_section_desc">Cài đặt TV, ứng dụng khởi động, khởi động lại, khôi phục</string>
+    <string name="ticker_length">Độ dài dải tin</string>
+    <string name="ticker_len_short">Ngắn</string>
+    <string name="ticker_len_wifi">Tới icon wifi</string>
+    <string name="ticker_len_full">Toàn màn hình</string>
+    <string name="ticker_len_custom">Tùy chỉnh (px)</string>
+    <string name="ticker_len_custom_value">Tùy chỉnh: %1$d px</string>
     <string name="about_section">Giới thiệu</string>
     <string name="about_section_desc">Phiên bản, mã nguồn</string>
     <string name="greeting">Dòng chào</string>

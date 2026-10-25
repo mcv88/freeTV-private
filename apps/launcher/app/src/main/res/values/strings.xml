@@ -241,6 +241,12 @@
     <string name="look_section_desc">Colours, background, effects, screensaver</string>
     <string name="system_section">System</string>
     <string name="system_section_desc">TV settings, boot app, reboot, reset</string>
+    <string name="ticker_length">Ticker length</string>
+    <string name="ticker_len_short">Short</string>
+    <string name="ticker_len_wifi">To the Wi-Fi icon</string>
+    <string name="ticker_len_full">Full width</string>
+    <string name="ticker_len_custom">Custom (px)</string>
+    <string name="ticker_len_custom_value">Custom: %1$d px</string>
     <string name="about_section">About</string>
     <string name="about_section_desc">Version, source code</string>
     <string name="greeting">Greeting line</string>

@@ -23,6 +23,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.RelativeSizeSpan;
@@ -60,6 +61,7 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView widgetsChoice;
     private TextView headlineStripChoice;
     private M3Switch headlineStripSwitch;
+    private TextView tickerLengthChoice;
     private TextView sourcesChoice;
     private TextView headerSectionChoice;
     private TextView lookSectionChoice;
@@ -178,6 +180,11 @@ public final class LauncherSettingsActivity extends Activity {
             choices.edit().putBoolean(MainActivity.HEADLINE_STRIP_KEY, on).apply();
             headlineStripSwitch.setChecked(on);
         });
+        tickerLengthChoice = findViewById(R.id.tickerLengthChoice);
+        tickerLengthChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                icon(R.drawable.ic_info), null, null, null);
+        tickerLengthChoice.setOnClickListener(v -> chooseTickerLength(config));
+        refreshTickerLengthRow();
         sourcesChoice = findViewById(R.id.sourcesChoice);
         sourcesChoice.setCompoundDrawablesRelativeWithIntrinsicBounds(
                 icon(R.drawable.ic_info), null, null, null);
@@ -310,6 +317,77 @@ public final class LauncherSettingsActivity extends Activity {
     private static final String SYSTEM_SECTION_KEY = "system_section";
     private static final String ABOUT_SECTION_KEY = "about_section";
 
+    private static final String[] TICKER_LENGTH_VALUES = {MainActivity.TICKER_LEN_SHORT,
+            MainActivity.TICKER_LEN_WIFI, MainActivity.TICKER_LEN_FULL,
+            MainActivity.TICKER_LEN_CUSTOM};
+    private static final int[] TICKER_LENGTH_LABELS = {R.string.ticker_len_short,
+            R.string.ticker_len_wifi, R.string.ticker_len_full, R.string.ticker_len_custom};
+
+    private void chooseTickerLength(Config config) {
+        CharSequence[] labels = new CharSequence[TICKER_LENGTH_LABELS.length];
+        for (int i = 0; i < labels.length; i++) labels[i] = getString(TICKER_LENGTH_LABELS[i]);
+        chooseOne(R.string.ticker_length, labels, null, tickerLengthIndex(), index -> {
+            if (MainActivity.TICKER_LEN_CUSTOM.equals(TICKER_LENGTH_VALUES[index])) {
+                chooseTickerWidthPx();
+                return;
+            }
+            choices.edit().putString(MainActivity.TICKER_LENGTH_KEY,
+                    TICKER_LENGTH_VALUES[index]).apply();
+            refreshTickerLengthRow();
+        }, config);
+    }
+
+    private void chooseTickerWidthPx() {
+        EditText edit = new EditText(this);
+        edit.setInputType(InputType.TYPE_CLASS_NUMBER);
+        int current = choices.getInt(MainActivity.TICKER_WIDTH_PX_KEY, 0);
+        if (current > 0) edit.setText(String.valueOf(current));
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.ticker_len_custom)
+                .setView(edit)
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    String text = edit.getText().toString().trim();
+                    if (text.isEmpty()) return;
+                    int width;
+                    try {
+                        width = Integer.parseInt(text);
+                    } catch (NumberFormatException e) {
+                        return;
+                    }
+                    int max = getResources().getDisplayMetrics().widthPixels;
+                    width = Math.max(0, Math.min(width, max));
+                    choices.edit()
+                            .putString(MainActivity.TICKER_LENGTH_KEY,
+                                    MainActivity.TICKER_LEN_CUSTOM)
+                            .putInt(MainActivity.TICKER_WIDTH_PX_KEY, width)
+                            .apply();
+                    refreshTickerLengthRow();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private int tickerLengthIndex() {
+        String length = choices.getString(MainActivity.TICKER_LENGTH_KEY,
+                MainActivity.TICKER_LEN_WIFI);
+        for (int i = 0; i < TICKER_LENGTH_VALUES.length; i++) {
+            if (TICKER_LENGTH_VALUES[i].equals(length)) return i;
+        }
+        return 1;
+    }
+
+    private void refreshTickerLengthRow() {
+        int index = tickerLengthIndex();
+        String desc;
+        if (MainActivity.TICKER_LEN_CUSTOM.equals(TICKER_LENGTH_VALUES[index])) {
+            int width = choices.getInt(MainActivity.TICKER_WIDTH_PX_KEY, 0);
+            desc = getString(R.string.ticker_len_custom_value, width);
+        } else {
+            desc = getString(TICKER_LENGTH_LABELS[index]);
+        }
+        tickerLengthChoice.setText(item(getString(R.string.ticker_length), desc));
+    }
+
     private void showHeaderSection() {
         headerSectionChoice = findViewById(R.id.headerSectionChoice);
         headerSectionChoice.setText(item(getString(R.string.header_section),
@@ -329,6 +407,7 @@ public final class LauncherSettingsActivity extends Activity {
                 icon(expanded ? R.drawable.ic_remove : R.drawable.ic_add), null);
         int visibility = expanded ? View.VISIBLE : View.GONE;
         headlineStripChoice.setVisibility(visibility);
+        tickerLengthChoice.setVisibility(visibility);
         sourcesChoice.setVisibility(visibility);
         greetingChoice.setVisibility(visibility);
         greetingTextChoice.setVisibility(visibility);
